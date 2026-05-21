@@ -1,0 +1,1505 @@
+<!DOCTYPE html>
+<html lang="de">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<meta http-equiv="Cache-Control" content="no-cache, no-store, must-revalidate">
+<meta http-equiv="Pragma" content="no-cache">
+<meta http-equiv="Expires" content="0">
+<title>x-Gleichungen mit Klammern · v18</title>
+<link href="https://fonts.googleapis.com/css2?family=Fraunces:wght@500;700;900&family=Inter:wght@400;500;600;700;800&family=JetBrains+Mono:wght@500;600;700&display=swap" rel="stylesheet">
+<style>
+/* =========================================================
+   DESIGN SYSTEM — Warm Paper, Ink Blue, Terracotta
+   ========================================================= */
+:root{
+  /* Base palette — pastel: ivory, lilac, sage, rose, aquamarine */
+  --paper: #FBF8F1;          /* ivory background */
+  --paper-2: #FFFDF7;        /* lighter ivory for cards */
+  --paper-3: #F2ECE0;        /* equation strip — soft cream */
+  --ink: #3E3A5C;            /* soft deep lilac-ink for text */
+  --ink-2: #605B82;          /* secondary text */
+  --ink-3: #8A86A8;          /* muted text */
+  --line: #E5DFEF;           /* subtle lilac-tinted border */
+  
+  /* Accents — all pastels */
+  --rose: #D87E9E;            /* rose — attention / warnings / primary */
+  --rose-bg: #FBE4ED;
+  --sage: #8DB596;            /* sage/mint green — correct, successful */
+  --sage-bg: #DFEDE2;
+  --aqua: #7EC4CF;            /* aquamarine — questions / info */
+  --aqua-bg: #D6EEF2;
+  --lilac: #B79CED;           /* lilac — x-terms */
+  --lilac-bg: #EAE0FA;
+  --peach: #F2B4A0;           /* peach for warm errors (softer than red) */
+  --peach-bg: #FBE3DB;
+  
+  /* Semantic mapping */
+  --x-color: var(--lilac);
+  --x-bg: var(--lilac-bg);
+  --n-color: #D89A6B;         /* soft warm ochre — readable for numbers */
+  --n-bg: #FBEBD8;
+  --ok: var(--sage);
+  --ok-bg: var(--sage-bg);
+  --err: var(--peach);
+  --err-bg: var(--peach-bg);
+  --focus: var(--rose);       /* rose focus for active terms */
+  --focus-bg: var(--rose-bg);
+  
+  --f-serif: 'Fraunces', Georgia, serif;
+  --f-sans: 'Inter', system-ui, sans-serif;
+  --f-mono: 'JetBrains Mono', 'Fira Code', monospace;
+  
+  --shadow-sm: 0 1px 2px rgba(30,42,68,.06);
+  --shadow-md: 0 4px 12px rgba(30,42,68,.08);
+  --shadow-lg: 0 8px 24px rgba(30,42,68,.1);
+  --radius: 12px;
+}
+
+*{box-sizing:border-box;margin:0;padding:0}
+html,body{background:var(--paper);color:var(--ink);font-family:var(--f-sans);min-height:100vh;-webkit-font-smoothing:antialiased}
+body::before{content:'';position:fixed;inset:0;background-image:radial-gradient(rgba(30,42,68,.03) 1px,transparent 1px);background-size:24px 24px;pointer-events:none;z-index:0}
+input[type="text"]{-moz-appearance:textfield}
+input::-webkit-outer-spin-button,input::-webkit-inner-spin-button{-webkit-appearance:none}
+button{font-family:inherit}
+
+#app{max-width:680px;margin:0 auto;padding:14px 12px;position:relative;z-index:1}
+
+/* ==================== PROGRESS ==================== */
+.prog{margin-bottom:14px}
+.prog-top{display:flex;justify-content:space-between;align-items:center;font-size:11px;color:var(--ink-3);margin-bottom:6px;font-weight:600;letter-spacing:.5px;text-transform:uppercase}
+.prog-bar{height:3px;background:var(--line);border-radius:2px;overflow:hidden}
+.prog-fill{height:100%;background:linear-gradient(90deg,var(--rose),#D89A6B);border-radius:2px;transition:width .5s ease}
+
+/* ==================== CARD ==================== */
+.card{background:var(--paper-2);border-radius:var(--radius);border:1px solid var(--line);padding:18px 16px;box-shadow:var(--shadow-md)}
+
+/* ==================== EQUATION — THE HERO ==================== */
+.eq-hero{background:var(--paper-3);border:1.5px solid var(--line);border-radius:14px;padding:16px 14px;margin-bottom:14px;font-family:var(--f-mono);font-size:17px;font-weight:600;color:var(--ink);line-height:2;text-align:center;overflow-x:auto;white-space:nowrap;box-shadow:inset 0 1px 2px rgba(30,42,68,.04)}
+.eq-hero.compact{font-size:14px;padding:10px 12px;opacity:.75}
+.eq-hero .eq{color:var(--ink);font-weight:900;font-size:20px;margin:0 10px;font-family:var(--f-serif);display:inline-block;vertical-align:middle}
+.eq-hero .cmd{color:var(--lilac);font-weight:700;margin-left:8px}
+
+/* Input inline in equation */
+.eq-input{width:60px;padding:6px 8px;background:#fff;border:2px solid var(--focus);border-radius:8px;color:var(--ink);font-size:17px;font-family:var(--f-mono);font-weight:700;text-align:center;outline:none;box-shadow:var(--shadow-sm)}
+.eq-input:focus{border-color:var(--rose);box-shadow:0 0 0 3px rgba(216,126,158,.2)}
+@keyframes shake{0%,100%{transform:translateX(0)}25%{transform:translateX(-5px)}75%{transform:translateX(5px)}}
+.shake{animation:shake .35s}
+
+/* Active / highlighted term in equation */
+.hi{background:var(--focus-bg);border:1.5px solid var(--focus);border-radius:7px;padding:2px 8px;color:var(--ink);font-weight:700;box-shadow:0 2px 6px rgba(216,126,158,.2);display:inline-block;vertical-align:middle}
+.hi-pair{background:var(--focus-bg);border:1.5px dashed var(--focus);border-radius:7px;padding:2px 8px;color:var(--ink)}
+
+/* Done term */
+.done-t{color:var(--ok);font-weight:700}
+
+/* Placeholder slot */
+.slot{display:inline-block;min-width:40px;height:24px;border-bottom:2px dashed var(--line);margin:0 3px;vertical-align:middle}
+
+/* ==================== HEADLINE ==================== */
+.step-h{font-family:var(--f-serif);font-size:14px;font-weight:700;color:var(--rose);text-transform:uppercase;letter-spacing:1.5px;margin-bottom:6px;display:flex;align-items:center;gap:8px}
+.step-h::before{content:'';width:20px;height:2px;background:var(--rose);border-radius:1px}
+.step-title{font-family:var(--f-serif);font-size:22px;font-weight:700;color:var(--ink);margin-bottom:10px;line-height:1.3}
+
+/* ==================== SIDE BANNER ==================== */
+.side-ban{text-align:center;padding:8px 12px;border-radius:10px;font-weight:700;font-size:12px;letter-spacing:1px;margin-bottom:10px;text-transform:uppercase;font-family:var(--f-sans)}
+.side-L{background:var(--sage-bg);color:var(--sage);border:1px solid rgba(141,181,150,.3)}
+.side-R{background:var(--lilac-bg);color:var(--lilac);border:1px solid rgba(183,156,237,.3)}
+.side-done{background:var(--ok-bg);color:var(--ok);border:1px solid rgba(43,122,120,.2);padding:6px 10px;border-radius:8px;font-weight:600;font-size:11px;text-align:center;margin-bottom:6px;text-transform:uppercase;letter-spacing:.8px}
+
+/* ==================== MATH KEYPAD ==================== */
+.keypad{margin-top:10px;background:var(--paper-3);border:1px solid var(--line);border-radius:12px;padding:8px;display:grid;grid-template-columns:repeat(4,1fr);gap:6px;box-shadow:var(--shadow-sm);max-width:340px;margin-left:auto;margin-right:auto}
+.key{background:#fff;border:1.5px solid var(--line);border-radius:8px;padding:14px 6px;font-family:var(--f-mono);font-size:18px;font-weight:700;color:var(--ink);cursor:pointer;transition:all .1s;user-select:none;-webkit-tap-highlight-color:transparent;min-height:48px;display:flex;align-items:center;justify-content:center;touch-action:manipulation}
+.key:hover{background:var(--paper-2);border-color:var(--ink-3)}
+.key:active{transform:scale(.95);background:var(--rose-bg);border-color:var(--rose)}
+.key-op{color:var(--rose);background:var(--rose-bg);border-color:rgba(216,126,158,.3)}
+.key-op:active{background:var(--rose);color:#fff}
+.key-op2{color:#5BA3AE;background:#E0EEF1;border-color:rgba(126,196,207,.4)}
+.key-op2:active{background:var(--aqua);color:#fff}
+.key-x{color:var(--lilac);background:var(--lilac-bg);border-color:rgba(183,156,237,.4);font-style:italic}
+.key-x:active{background:var(--lilac);color:#fff}
+.key-del{color:var(--ink-2);background:#fff;font-size:20px}
+.key-del:active{background:var(--peach-bg);border-color:var(--peach)}
+.key-ok{color:#fff;background:var(--sage);border-color:var(--sage);grid-column:span 4;font-size:15px;margin-top:2px}
+.key-ok:active{background:#7AA483}
+.eq-input.no-native{caret-color:var(--rose)}
+
+/* ==================== TRANSITION SCREEN ==================== */
+.transition-screen{text-align:center;padding:24px 14px;animation:fadeIn .5s ease}
+.transition-icon{font-size:72px;margin-bottom:14px;animation:bounceIn .6s cubic-bezier(.68,-.55,.265,1.55)}
+.transition-headline{font-family:var(--f-serif);font-size:26px;font-weight:900;color:var(--ink);margin-bottom:10px;line-height:1.3}
+.transition-subline{font-size:15px;color:var(--ink-2);line-height:1.6;max-width:420px;margin:0 auto 4px;font-weight:500}
+@keyframes bounceIn{0%{transform:scale(.3);opacity:0}50%{transform:scale(1.1);opacity:1}70%{transform:scale(.95)}100%{transform:scale(1)}}
+
+/* ==================== TASK BAR (what to do) ==================== */
+.task{background:#fff;border-left:3px solid var(--rose);border-radius:8px;padding:10px 14px;margin-bottom:12px;display:flex;gap:10px;align-items:center;font-size:14px;color:var(--ink);font-weight:500;box-shadow:var(--shadow-sm)}
+.task-icon{font-size:20px;flex-shrink:0}
+
+/* ==================== QUESTION BOX ==================== */
+.qbox{background:#fff;border:1.5px solid var(--rose);border-radius:14px;padding:16px 18px;margin-bottom:12px;text-align:center;box-shadow:var(--shadow-sm)}
+.qbox-label{display:inline-block;background:var(--rose);color:#fff;font-size:10px;font-weight:800;letter-spacing:1.5px;padding:3px 10px;border-radius:20px;margin-bottom:10px;font-family:var(--f-sans);text-transform:uppercase}
+.qbox-q{font-family:var(--f-serif);font-size:18px;font-weight:600;color:var(--ink);line-height:1.4}
+.qbox-q strong{color:var(--rose)}
+
+/* ==================== BUTTONS ==================== */
+.btn{border:none;border-radius:10px;padding:11px 22px;font-size:14px;font-weight:700;cursor:pointer;transition:transform .15s,box-shadow .15s;display:inline-flex;align-items:center;gap:6px}
+.btn:hover{transform:translateY(-1px)}
+.btn-p{background:var(--rose);color:#fff;box-shadow:var(--shadow-sm)}
+.btn-p:hover{box-shadow:var(--shadow-md);background:#b04f42}
+.btn-s{background:var(--sage);color:#fff;box-shadow:var(--shadow-sm)}
+.btn-s:hover{box-shadow:var(--shadow-md);background:#236361}
+.btn-g{background:var(--paper-3);color:var(--ink-2);border:1px solid var(--line)}
+.btn-g:hover{background:var(--line)}
+.btn-sm{padding:7px 14px;font-size:12px}
+.btn-skip{background:none;border:1px solid var(--line);color:var(--ink-3);font-size:11px;padding:5px 12px;border-radius:7px;cursor:pointer;font-weight:500}
+.btn-skip:hover{border-color:var(--ink-3);color:var(--ink-2)}
+.skip-row{text-align:right;margin-top:10px}
+
+/* ==================== CHOICE BUTTONS ==================== */
+.choice{background:#fff;border:1.5px solid var(--line);color:var(--ink);border-radius:10px;padding:10px 16px;font-size:14px;font-weight:600;cursor:pointer;font-family:var(--f-mono);transition:all .15s;min-width:56px}
+.choice:hover{border-color:var(--ink-3);background:var(--paper-2)}
+.choice.ok{border-color:var(--ok);background:var(--ok-bg);color:var(--ok)}
+.choice.no{border-color:var(--err);background:var(--err-bg);color:var(--err)}
+.choice.selected{border-color:var(--rose);background:var(--err-bg);color:var(--rose)}
+
+/* ==================== CALLOUTS ==================== */
+.cbox{border-radius:10px;padding:12px 14px;margin:10px 0;font-size:13px;line-height:1.6;display:flex;gap:10px;align-items:flex-start;font-weight:500}
+.cbox .ci{font-size:18px;flex-shrink:0}
+.cbox strong{font-weight:700}
+.cbox-info{background:#fff;border-left:3px solid var(--ink-2);color:var(--ink)}
+.cbox-ok{background:var(--ok-bg);border-left:3px solid var(--ok);color:var(--ok)}
+.cbox-warn{background:#FBEBD8;border-left:3px solid #D89A6B;color:#8B5A32}
+.cbox-err{background:var(--err-bg);border-left:3px solid var(--err);color:var(--err)}
+
+/* ==================== TOAST ==================== */
+#toast{position:fixed;bottom:20px;left:50%;transform:translateX(-50%) translateY(80px);padding:12px 20px 8px 20px;border-radius:12px;color:#fff;font-weight:600;font-size:13px;z-index:100;box-shadow:var(--shadow-lg);max-width:92vw;text-align:center;transition:transform .3s,opacity .3s;opacity:0;pointer-events:none;cursor:pointer;line-height:1.5;min-width:200px}
+#toast.show{transform:translateX(-50%) translateY(0);opacity:1;pointer-events:auto}
+#toast.toast-quick{padding:10px 18px;min-width:auto;font-size:14px;cursor:default;font-weight:700}
+#toast.toast-quick.show{pointer-events:none}
+#toast .tc{font-size:10px;display:block;margin-top:4px;opacity:.75;font-weight:500}
+.toast-ok{background:var(--ok)}.toast-err{background:var(--err)}.toast-warn{background:#D89A6B}
+
+/* ==================== TERM CHIPS (marking) ==================== */
+.chip{display:inline-block;padding:8px 12px;border-radius:8px;font-family:var(--f-mono);font-size:14px;font-weight:700;cursor:pointer;user-select:none;border:1.5px solid var(--line);margin:3px;transition:all .2s;background:#fff;color:var(--ink)}
+.chip:hover{border-color:var(--ink-3)}
+.chip.mx{background:var(--x-bg);color:var(--x-color);border-color:var(--x-color)}
+.chip.mn{background:var(--n-bg);color:var(--n-color);border-color:var(--n-color)}
+
+/* ==================== COLORED EQUATION IN COMBINE ==================== */
+.col-x{color:var(--x-color);background:var(--x-bg);padding:3px 7px;border-radius:6px;font-family:var(--f-mono);font-weight:700;margin:0 1px;border:1px solid rgba(183,156,237,.4);display:inline-block;vertical-align:middle}
+.col-n{color:var(--n-color);background:var(--n-bg);padding:3px 7px;border-radius:6px;font-family:var(--f-mono);font-weight:700;margin:0 1px;border:1px solid rgba(216,154,107,.4);display:inline-block;vertical-align:middle}
+.em-term{font-size:17px;padding:5px 10px;border-width:2px;box-shadow:var(--shadow-sm);transform:translateY(-1px)}
+.em-strong{font-size:20px;font-weight:800;padding:6px 12px;border-width:2.5px;transform:translateY(-1px) scale(1.05);animation:emPulse 1.4s ease-in-out infinite}
+@keyframes emPulse{0%,100%{box-shadow:0 0 0 0 rgba(212,169,59,0)}50%{box-shadow:0 0 12px 2px rgba(212,169,59,.45)}}
+
+/* ==================== WELCOME/MENU ==================== */
+.screen-c{min-height:100vh;display:flex;align-items:center;justify-content:center;padding:20px;text-align:center;position:relative;z-index:1}
+.welcome-title{font-family:var(--f-serif);font-size:36px;font-weight:900;color:var(--ink);line-height:1.1;margin-bottom:10px}
+.welcome-title em{font-style:italic;color:var(--rose);font-weight:700}
+.welcome-sub{color:var(--ink-3);font-size:15px;line-height:1.6;margin-bottom:28px}
+.solved-box{background:#fff;border:1px solid var(--line);border-radius:14px;padding:14px 20px;margin-bottom:24px;box-shadow:var(--shadow-sm)}
+.solved-num{font-family:var(--f-serif);font-size:32px;font-weight:900;color:var(--ok)}
+
+/* ==================== LAYOUT HELPERS ==================== */
+.flex-row{display:flex;align-items:center;gap:10px;flex-wrap:wrap}
+.flex-col{display:flex;flex-direction:column;gap:10px}
+.flex-wrap{display:flex;flex-wrap:wrap;gap:8px}
+.center{text-align:center}
+.mt-10{margin-top:10px}.mt-14{margin-top:14px}.mb-10{margin-bottom:10px}
+.fadeIn{animation:fadeIn .35s ease}
+@keyframes fadeIn{from{opacity:0;transform:translateY(4px)}to{opacity:1;transform:translateY(0)}}
+
+/* ==================== RESULT ==================== */
+.result-box{background:var(--ok-bg);border:2px solid var(--ok);border-radius:14px;padding:18px;text-align:center;font-family:var(--f-mono);font-size:28px;font-weight:700;color:var(--ok);margin:14px 0}
+.score-wrap{background:#fff;border:1px solid var(--line);border-radius:12px;padding:16px;margin:14px 0;text-align:left}
+.score-num{font-family:var(--f-serif);font-size:32px;font-weight:900;text-align:center}
+.score-bar{height:8px;background:var(--line);border-radius:4px;overflow:hidden;margin:10px 0}
+.score-bar-fill{height:100%;border-radius:4px;transition:width .6s}
+
+/* ==================== STORY PAGE ==================== */
+.story-c{text-align:center;padding:6px 0}
+.story-icon{font-size:52px;margin-bottom:8px}
+.story-title{font-family:var(--f-serif);font-size:22px;font-weight:700;color:var(--ink);margin-bottom:14px}
+.story-text{font-size:15px;line-height:1.8;color:var(--ink-2);padding:0 8px}
+.story-text strong{color:var(--ink)}
+.story-dots{display:flex;justify-content:center;gap:6px;margin:18px 0 14px}
+.story-dot{width:7px;height:7px;border-radius:4px;background:var(--line);transition:all .3s}
+.story-dot.active{width:22px;background:var(--rose)}
+</style>
+</head>
+<body>
+<div id="toast"></div>
+<div id="app"></div>
+<script>
+// =========================================================
+// UTILITIES
+// =========================================================
+const $=s=>document.querySelector(s),$$=s=>document.querySelectorAll(s);
+const el=(t,a={},...ch)=>{const e=document.createElement(t);for(const[k,v]of Object.entries(a)){if(k==='class')e.className=v;else if(k==='style'&&typeof v==='object')Object.assign(e.style,v);else if(k.startsWith('on'))e.addEventListener(k.slice(2).toLowerCase(),v);else e.setAttribute(k,v)}for(const c of ch){if(typeof c==='string')e.appendChild(document.createTextNode(c));else if(c)e.appendChild(c)}return e};
+function randInt(a,b){return Math.floor(Math.random()*(b-a+1))+a}
+function randChoice(a){return a[Math.floor(Math.random()*a.length)]}
+function shuffle(a){const r=[...a];for(let i=r.length-1;i>0;i--){const j=Math.floor(Math.random()*(i+1));[r[i],r[j]]=[r[j],r[i]]}return r}
+
+// Toast — success auto-dismisses; errors/warnings stay until click
+let toastTimer = null;
+function showToast(msg,type='ok'){
+  const t=$('#toast');
+  if(toastTimer){ clearTimeout(toastTimer); toastTimer=null; }
+  if(type === 'ok'){
+    // Auto-dismissing thumbs-up style: shorter, no instructions
+    t.innerHTML='👍 '+msg;
+    t.className='show toast-'+type+' toast-quick';
+    t.onclick=null;
+    toastTimer=setTimeout(()=>{t.className='';toastTimer=null;},900);
+  } else {
+    // Errors/warnings: stay until tapped (important info to read)
+    t.innerHTML=msg+'<span class="tc">Antippen zum Schließen</span>';
+    t.className='show toast-'+type;
+    t.onclick=()=>{t.className='';if(toastTimer){clearTimeout(toastTimer);toastTimer=null;}};
+  }
+}
+function clearToast(){const t=$('#toast');t.className='';if(toastTimer){clearTimeout(toastTimer);toastTimer=null;}}
+
+// =========================================================
+// EQUATION GENERATOR
+// =========================================================
+function genEq(n=0){
+  if(n>300)return{x:2,left:{a:2,b:8,c:3,d:4,e:-2,f:14},right:{g:-5,h:-3,i:-3,j:-5,k:7,l:30,m:8},leftXCoeff:14,leftConst:16,rightXCoeff:20,rightConst:4};
+  const x=randInt(1,8),a=randInt(1,5),b=randInt(-10,15),c=randChoice([2,3,-2,-3,4,-4]),d=randInt(1,5),e=randInt(-8,8);
+  if(!e)return genEq(n+1);
+  const f=randInt(-12,15),lxc=a+c*d,lcc=b+c*e+f;
+  const h=randInt(-5,5),i=randChoice([2,3,-2,-3,-4]),j=randInt(1,5),k=randInt(-8,8);
+  if(!k)return genEq(n+1);
+  const m=randInt(0,6),rxc=h+i*j+m,rcc=lcc+(lxc-rxc)*x,g=randInt(-10,10),l=rcc-g-i*k;
+  if([a,b,c,d,e,f,g,h,i,j,k,l,m,lxc,rxc,lcc,rcc].some(v=>Math.abs(v)>30))return genEq(n+1);
+  if(lxc===rxc||x<=0)return genEq(n+1);
+  if(!lxc||!lcc||!rxc||!rcc)return genEq(n+1);
+  const rl=Math.abs(lxc)<=Math.abs(rxc),ax=rl?rxc-lxc:lxc-rxc,co=rl?rcc:lcc;
+  if(!co||ax<=1)return genEq(n+1);
+  const nv=(rl?lcc:rcc)-co;
+  if(!nv||nv%ax!==0)return genEq(n+1);
+  return{x,left:{a,b,c,d,e,f},right:{g,h,i,j,k,l,m},leftXCoeff:lxc,leftConst:lcc,rightXCoeff:rxc,rightConst:rcc};
+}
+
+// =========================================================
+// FORMATTING
+// =========================================================
+function fmt(c,x,first){if(!c)return'';const ac=Math.abs(c);let s=first?(c<0?'–':''):(c<0?' – ':' + ');let n=x?(ac===1?'x':ac+'x'):''+ac;return s+n}
+function fmtBrk(fac,d,e,first){const af=Math.abs(fac);const s=first?(fac<0?'–':''):(fac<0?' – ':' + ');const fs=af===1?'':''+af;let inner=(d===1?'x':d===-1?'–x':d<0?'–'+Math.abs(d)+'x':d+'x');inner+=(e<0?' – '+Math.abs(e):' + '+e);return s+fs+'('+inner+')'}
+function fmtAns(v,x){if(x){if(v===1)return'x';if(v===-1)return'-x';return v+'x'}return''+v}
+// Command-stroke formatting: ALWAYS show a leading + or – sign
+function fmtCmd(v,x){
+  const sign = v<0 ? '–' : '+';
+  const av = Math.abs(v);
+  if(x){ return sign + (av===1 ? 'x' : av+'x'); }
+  return sign + av;
+}
+function parseMath(r,x){
+  let s=(r||'').trim().replace(/–/g,'-');
+  if(!s) return NaN;
+  // Strip leading + (positive default)
+  if(s.startsWith('+')) s = s.slice(1);
+  // Evaluate · and : if present (e.g. user typed "2·3" instead of "6")
+  // Strategy: split on · and : while respecting order — but here we keep it simple:
+  // only allow EITHER pure expression OR final form with optional x suffix
+  const hasX = s.endsWith('x');
+  if(hasX) s = s.slice(0,-1);
+  // If empty after stripping x: it was just "x" or "-x"
+  if(s === '' || s === '-'){
+    if(x){ return s === '-' ? -1 : 1; }
+    return NaN;
+  }
+  // Evaluate · and : left to right if present
+  if(s.includes('·') || s.includes(':')){
+    // Tokenize: numbers (with optional leading -) and operators
+    const tokens = [];
+    let buf = '';
+    for(let i=0;i<s.length;i++){
+      const ch = s[i];
+      if(ch === '·' || ch === ':'){
+        if(buf === '' || buf === '-') return NaN;
+        tokens.push(parseInt(buf));
+        if(isNaN(tokens[tokens.length-1])) return NaN;
+        tokens.push(ch);
+        buf = '';
+      } else if((ch >= '0' && ch <= '9') || (ch === '-' && buf === '')){
+        buf += ch;
+      } else {
+        return NaN;
+      }
+    }
+    if(buf === '' || buf === '-') return NaN;
+    tokens.push(parseInt(buf));
+    if(isNaN(tokens[tokens.length-1])) return NaN;
+    // Evaluate left to right
+    let result = tokens[0];
+    for(let i=1;i<tokens.length;i+=2){
+      const op = tokens[i], next = tokens[i+1];
+      if(op === '·') result = result * next;
+      else if(op === ':'){ if(next === 0) return NaN; result = result / next; }
+    }
+    if(!Number.isInteger(result)) return NaN;
+    if(x){
+      // "2·3x" → 6x → 6
+      return result;
+    }
+    return result;
+  }
+  // Plain integer
+  const n = parseInt(s);
+  if(isNaN(n)) return NaN;
+  if(x){
+    if(s === '') return 1;
+    return n;
+  }
+  return n;
+}
+
+function buildOrigHTML(eq,highlightIdx=null){
+  const{a,b,c,d,e,f}=eq.left;const{g,h,i,j,k,l,m}=eq.right;
+  // Build segments with indices for highlighting
+  // For brackets we split into 3 parts: factor, openBracket+firstTerm, middle, secondTerm+closeBracket
+  // Indices 2 and 3 correspond to bracket parts (c*d and c*e)
+  // Indices for right bracket are the next two after any h
+  const segs=[];
+  segs.push({t:fmt(a,1,1),i:0});
+  segs.push({t:fmt(b,0,0),i:1});
+  segs.push({brk:true,fac:c,d,e,facIdx:2,eIdx:3,first:false});
+  segs.push({t:fmt(f,0,0),i:4});
+  segs.push({eq:1});
+  let ri=5;
+  segs.push({t:fmt(g,0,1),i:ri});ri++;
+  if(h){segs.push({t:fmt(h,1,0),i:ri});ri++}
+  segs.push({brk:true,fac:i,d:j,e:k,facIdx:ri,eIdx:ri+1,first:false});ri+=2;
+  if(l){segs.push({t:fmt(l,0,0),i:ri});ri++}
+  if(m){segs.push({t:fmt(m,1,0),i:ri});ri++}
+  let html='';
+  for(const s of segs){
+    if(s.eq){html+='<span class="eq">=</span>';continue}
+    if(s.brk){
+      html+=renderBracket(s,highlightIdx);
+      continue;
+    }
+    const isAct=highlightIdx!==null&&s.i===highlightIdx;
+    html+=isAct?`<span class="hi">${s.t}</span>`:s.t;
+  }
+  return html;
+}
+
+// Render bracket with granular highlighting
+// facIdx = index for factor · firstTerm (d)
+// eIdx  = index for factor · secondTerm (e)
+function renderBracket(s,hi){
+  const{fac,d,e,facIdx,eIdx}=s;
+  const af=Math.abs(fac);
+  const sign=fac<0?'–':'+';
+  const fStr=af===1?'':''+af;
+  // Format inner terms without their surrounding operator (we add it)
+  const dStr=(d===1?'x':d===-1?'–x':d<0?'–'+Math.abs(d)+'x':d+'x');
+  const eStr=(e<0?'– '+Math.abs(e):'+ '+e);
+  
+  const isFirstActive=hi===facIdx;   // factor · d
+  const isSecondActive=hi===eIdx;    // factor · e
+  
+  // Build the parts
+  // " + 4 ( 4x – 2 )" — we want to highlight:
+  //   if first active: "+ 4" AND "4x"
+  //   if second active: "+ 4" AND "– 2"
+  const facPart = `${sign} ${fStr}`;
+  const facHi = (isFirstActive||isSecondActive) ? `<span class="hi">${facPart}</span>` : facPart;
+  
+  const dPartRaw = dStr;
+  const ePartRaw = eStr;
+  const dPart = isFirstActive ? `<span class="hi">${dPartRaw}</span>` : dPartRaw;
+  const ePart = isSecondActive ? `<span class="hi">${ePartRaw}</span>` : ePartRaw;
+  
+  return ` ${facHi} (${dPart} ${ePart})`;
+}
+
+function expTerms(eq){const{a,b,c,d,e,f}=eq.left;const{g,h,i,j,k,l,m}=eq.right;const L=[{v:a,x:1},{v:b,x:0},{v:c*d,x:1},{v:c*e,x:0},{v:f,x:0}];const R=[{v:g,x:0}];if(h)R.push({v:h,x:1});R.push({v:i*j,x:1},{v:i*k,x:0});if(l)R.push({v:l,x:0});if(m)R.push({v:m,x:1});return{L,R}}
+function axPickup(eq){const{leftXCoeff:lx,leftConst:lc,rightXCoeff:rx,rightConst:rc}=eq;const rl=Math.abs(lx)<=Math.abs(rx);if(rl)return{xS:'R',xC:rx-lx,cX:rc,cA:lc,cmd:-lx,sm:lx};return{xS:'L',xC:lx-rx,cX:lc,cA:rc,cmd:-rx,sm:rx}}
+function acPickup(eq){const a=axPickup(eq);const nv=a.cA-a.cX;return{xS:a.xS,xC:a.xC,nv,cmd:-a.cX}}
+
+// =========================================================
+// ERROR TRACKING
+// =========================================================
+let errors={};
+function resetErrors(){errors={expand:{err:0,att:0},mark:{err:0,att:0},combine:{err:0,att:0},pickup:{err:0,att:0},pickupConst:{err:0,att:0},divide:{err:0,att:0}}}
+function trackErr(cat){errors[cat].err++;errors[cat].att++}
+function trackOk(cat){errors[cat].att++}
+
+// =========================================================
+// APP STATE — "What I want to do" (point 7: user's wording)
+// =========================================================
+const USER_STEPS = [
+  'Klammern auflösen',
+  'Zusammenfassen',
+  'Kleineres x abholen',
+  '+ oder – abholen',
+  'Mal abholen',
+  'Evtl. umdrehen'
+];
+
+let S={screen:'welcome',eq:null,step:0,solved:0};
+function render(){$('#app').innerHTML='';
+  if(S.screen==='welcome')rWelcome();
+  else if(S.screen==='menu')rMenu();
+  else rExercise();
+}
+function startNew(){S.eq=genEq();S.step=0;S.screen='exercise';resetErrors();render()}
+function next(){S.step++;clearToast();rExercise()}
+function gotoStep(n){S.step=n;clearToast();rExercise()}
+
+// =========================================================
+// WELCOME / MENU
+// =========================================================
+function rWelcome(){
+  $('#app').innerHTML=`<div class="screen-c fadeIn"><div style="max-width:440px">
+    <div style="font-size:56px;margin-bottom:14px">📐</div>
+    <h1 class="welcome-title"><em>x-Gleichungen</em><br>mit Klammern</h1>
+    <p class="welcome-sub">Lerne Schritt für Schritt — in deinem Tempo. Mit den Pärchen, der Party und dem Kommandostrich.</p>
+    <button class="btn btn-p" id="go" style="font-size:15px;padding:13px 28px">Los geht's</button>
+    <p style="color:var(--ink-3);font-size:11px;margin-top:18px">🧮 Taschenrechner ist erlaubt — jederzeit!</p>
+  </div></div>`;
+  $('#go').onclick=()=>{S.screen='menu';render()};
+}
+function rMenu(){
+  const s=S.solved;
+  $('#app').innerHTML=`<div class="screen-c fadeIn"><div style="max-width:420px">
+    ${s?`<div class="solved-box"><span style="font-size:28px">🏆</span><div class="solved-num">${s}</div><p style="font-size:13px;color:var(--ink-3);font-weight:600">${s===1?'Gleichung gelöst':'Gleichungen gelöst'}</p></div>`:''}
+    <h2 style="font-family:var(--f-serif);font-size:22px;font-weight:700;color:var(--ink);margin-bottom:18px">${s?'Nächste Aufgabe?':'Bereit?'}</h2>
+    <button class="btn btn-p" id="nb" style="font-size:15px;padding:13px 28px">Neue Aufgabe</button>
+  </div></div>`;
+  $('#nb').onclick=startNew;
+}
+
+// =========================================================
+// MATH KEYPAD — custom number+sign+x keyboard for fast entry
+// =========================================================
+function mountKeypad(inputId, checkFn, opts={}){
+  // opts.allowX: whether to show the x key
+  const allowX = opts.allowX !== false;
+  const mount = document.getElementById('keypad-mount');
+  if(!mount) return;
+  
+  // 4-column layout, calculator-style
+  // Row 1: 7 8 9 ⌫
+  // Row 2: 4 5 6 x
+  // Row 3: 1 2 3 ·
+  // Row 4: + 0 – :
+  // Row 5: full-width Prüfen ✓
+  
+  const rows = [
+    [{k:'7'},{k:'8'},{k:'9'},{k:'del',cls:'key-del',label:'⌫'}],
+    [{k:'4'},{k:'5'},{k:'6'},{k:'x',cls:'key-x',label:'x'}],
+    [{k:'1'},{k:'2'},{k:'3'},{k:'·',cls:'key-op2',label:'·'}],
+    [{k:'+',cls:'key-op',label:'+'},{k:'0'},{k:'–',cls:'key-op',label:'–'},{k:':',cls:'key-op2',label:':'}],
+  ];
+  
+  let html = '<div class="keypad">';
+  rows.forEach(row => {
+    row.forEach(key => {
+      if(key.hide){
+        html += `<div></div>`;
+      } else {
+        const cls = key.cls ? `key ${key.cls}` : 'key';
+        const label = key.label || key.k;
+        html += `<button class="${cls}" data-k="${key.k}">${label}</button>`;
+      }
+    });
+  });
+  html += `<button class="key key-ok" data-k="check">Prüfen ✓</button>`;
+  html += '</div>';
+  mount.innerHTML = html;
+  
+  // Get input
+  const inp = document.getElementById(inputId);
+  if(!inp) return;
+  
+  // Suppress native mobile keyboard while keeping visual focus and cursor
+  inp.setAttribute('inputmode','none');
+  inp.classList.add('no-native');
+  
+  // Wire up keys
+  mount.querySelectorAll('.key').forEach(btn => {
+    const handler = (ev) => {
+      ev.preventDefault();
+      const k = btn.dataset.k;
+      if(k === 'check'){
+        if(checkFn) checkFn();
+        return;
+      }
+      if(k === 'del'){
+        inp.value = inp.value.slice(0, -1);
+        return;
+      }
+      if(k === '+'){
+        // Set leading + sign (visible). Replaces leading - if any.
+        if(inp.value.startsWith('-') || inp.value.startsWith('+')){
+          inp.value = '+' + inp.value.slice(1);
+        } else {
+          inp.value = '+' + inp.value;
+        }
+        return;
+      }
+      if(k === '–'){
+        // Set leading - sign (visible). Replaces leading + if any.
+        if(inp.value.startsWith('+') || inp.value.startsWith('-')){
+          inp.value = '-' + inp.value.slice(1);
+        } else {
+          inp.value = '-' + inp.value;
+        }
+        return;
+      }
+      if(k === 'x'){
+        if(inp.value.endsWith('x')) return;
+        inp.value = inp.value + 'x';
+        return;
+      }
+      if(k === '·' || k === ':'){
+        // Append operator (allow only if previous char isn't operator)
+        const last = inp.value.slice(-1);
+        if(last === '·' || last === ':' || inp.value === '' || inp.value === '-') return;
+        inp.value = inp.value + k;
+        return;
+      }
+      // Digit
+      if(inp.value.endsWith('x')) return;
+      inp.value = inp.value + k;
+    };
+    btn.addEventListener('pointerdown', handler);
+  });
+}
+
+// =========================================================
+// TRANSITION SCREEN — forces students to read between steps
+// =========================================================
+function rTransition(c, {icon, headline, subline, hint, nextLabel='Weiter →', quiz, eqHTML}){
+  // If quiz is provided, show praise + a "what's next?" multiple choice question
+  if(quiz){
+    c.innerHTML = `<div class="fadeIn transition-screen">
+      <div class="transition-icon">${icon}</div>
+      <h2 class="transition-headline">${headline}</h2>
+      ${subline ? `<p class="transition-subline">${subline}</p>` : ''}
+      ${eqHTML ? `<div class="eq-hero" style="margin:14px auto;max-width:480px">${eqHTML}</div>` : ''}
+      <div class="qbox" style="margin-top:14px"><span class="qbox-label">Frage</span><div class="qbox-q">${quiz.q}</div></div>
+      <div class="flex-wrap" style="justify-content:center" id="t-choices"></div>
+      <div id="t-feedback"></div>
+    </div>`;
+    const opts = shuffle(quiz.options.map((o,i)=>({...o})));
+    const area = $('#t-choices');
+    opts.forEach(o=>{
+      const b=el('button',{class:'choice',style:{flex:'1 1 45%',minWidth:'150px',fontSize:'13px',fontFamily:'var(--f-sans)'}},o.t);
+      b.onclick=()=>{
+        $$('#t-choices .choice').forEach(z=>z.style.pointerEvents='none');
+        if(o.ok){
+          b.classList.add('ok');
+          showToast('Richtig!','ok');
+          const fb=$('#t-feedback');
+          fb.innerHTML=`<div class="cbox cbox-ok" style="text-align:left;max-width:420px;margin:14px auto"><span class="ci">✓</span><div>${quiz.okMsg}</div></div>`;
+          fb.appendChild(el('button',{class:'btn btn-s',style:{marginTop:'4px'},onClick:next},nextLabel));
+        }else{
+          b.classList.add('no');
+          $$('#t-choices .choice').forEach(z=>{const t=z.textContent;if(opts.find(x=>x.t===t&&x.ok))z.classList.add('ok')});
+          showToast('Nicht ganz — schau nochmal!','err');
+          const fb=$('#t-feedback');
+          fb.innerHTML=`<div class="cbox cbox-warn" style="text-align:left;max-width:420px;margin:14px auto"><span class="ci">💡</span><div>${quiz.noMsg}</div></div>`;
+          fb.appendChild(el('button',{class:'btn btn-p',style:{marginTop:'4px'},onClick:next},nextLabel));
+        }
+      };
+      area.appendChild(b);
+    });
+    return;
+  }
+  c.innerHTML = `<div class="fadeIn transition-screen">
+    <div class="transition-icon">${icon}</div>
+    <h2 class="transition-headline">${headline}</h2>
+    ${subline ? `<p class="transition-subline">${subline}</p>` : ''}
+    ${hint ? `<div class="cbox cbox-info" style="text-align:left;max-width:420px;margin:18px auto"><span class="ci">💡</span><div>${hint}</div></div>` : ''}
+    <button class="btn btn-s" style="font-size:15px;padding:13px 28px;margin-top:14px" onclick="next()">${nextLabel}</button>
+  </div>`;
+}
+
+function rT_AfterExpand(c){
+  const eq=S.eq;const{L,R}=expTerms(eq);
+  const expL=L.filter(t=>t.v).map((t,i)=>fmt(t.v,t.x,i===0)).join('');
+  const expR=R.filter(t=>t.v).map((t,i)=>fmt(t.v,t.x,i===0)).join('');
+  rTransition(c, {
+    icon:'🎉',
+    headline:'Toll, alle Klammern sind aufgelöst!',
+    subline:'Der erste große Schritt ist geschafft.',
+    eqHTML:`${expL}<span class="eq">=</span>${expR}`,
+    quiz:{
+      q:'Was machen wir als <strong>Nächstes</strong>?',
+      options:[
+        {t:'Zusammenfassen',ok:1},
+        {t:'Kleineres x abholen',ok:0},
+        {t:'Mal abholen',ok:0},
+        {t:'Evtl. umdrehen',ok:0},
+      ],
+      okMsg:'Genau! Jetzt fassen wir die gleichartigen Terme zusammen. Dafür markieren wir sie zuerst.',
+      noMsg:'Die Klammern sind weg — jetzt kommt das <strong>Zusammenfassen</strong>. Dafür markieren wir zuerst die Terme.'
+    }
+  });
+}
+function rT_AfterMark(c){
+  rTransition(c, {
+    icon:'🎨',
+    headline:'Super, alles ist markiert!',
+    subline:'Jetzt sieht man auf einen Blick, was zusammengehört.',
+    hint:'<strong>Wichtige Regel:</strong> Nur Terme der <em>gleichen Seite</em> dürfen zusammengefasst werden — links und rechts niemals vermischen!'
+  });
+}
+function rT_AfterCombine(c){
+  const eq=S.eq;
+  const combL=fmt(eq.leftXCoeff,1,1)+fmt(eq.leftConst,0,0);
+  const combR=fmt(eq.rightConst,0,1)+fmt(eq.rightXCoeff,1,0);
+  rTransition(c, {
+    icon:'✨',
+    headline:'Klasse, die Gleichung ist viel kürzer!',
+    subline:'Aber Achtung — sind wir schon am Ziel?',
+    eqHTML:`${combL}<span class="eq">=</span>${combR}`,
+    quiz:{
+      q:'Steht das <strong>x</strong> schon alleine?',
+      options:[
+        {t:'Nein, es gibt noch zwei Partys',ok:1},
+        {t:'Ja, wir sind fertig',ok:0},
+      ],
+      okMsg:'Genau! Auf beiden Seiten stehen noch x-Terme und Zahlen. Um weiterzukommen, brauchst du eine wichtige Geschichte über die mathematischen Pärchen...',
+      noMsg:'Noch nicht! Auf beiden Seiten stehen noch x-Terme und Zahlen. Um weiterzukommen, brauchst du eine wichtige Geschichte...'
+    }
+  });
+}
+function rT_AfterPickupX(c){
+  rTransition(c, {
+    icon:'🎊',
+    headline:'Geschafft, eine Party ist aufgelöst!',
+    subline:'Die x-Terme stehen jetzt nur noch auf einer Seite.'
+  });
+}
+function rT_AfterPickupConst(c){
+  rTransition(c, {
+    icon:'🥳',
+    headline:'Super, fast geschafft!',
+    subline:'Die Zahl ohne x ist abgeholt.'
+  });
+}
+
+// =========================================================
+// EXERCISE RENDERER
+// =========================================================
+function rExercise(){
+  const app=$('#app');app.innerHTML='';
+  const steps=[rS_Q0,rS_SignQuiz,rS_Expand,rT_AfterExpand,rS_Mark,rS_Combine,rT_AfterCombine,rS_StoryIntro,rS_StoryParty,rS_StoryPickup,rS_StoryBalance,rS_StoryQuiz,rS_Q1,rS_PickupX,rT_AfterPickupX,rS_Q2,rS_PickupConst,rT_AfterPickupConst,rS_Q3,rS_Divide,rS_FlipDone];
+  const tot=steps.length;const pct=Math.round((S.step/(tot-1))*100);
+  app.innerHTML=`<div class="prog"><div class="prog-top"><span>Fortschritt</span><span>${pct}%</span></div><div class="prog-bar"><div class="prog-fill" style="width:${pct}%"></div></div></div><div class="card" id="sc"></div>`;
+  if(S.step<steps.length)steps[S.step]($('#sc'));
+}
+
+// =========================================================
+// S0: WHAT TO DO FIRST?
+// =========================================================
+function rS_Q0(c){
+  const eq=S.eq;
+  c.innerHTML=`<div class="fadeIn">
+    <div class="step-h">Aufgabe</div>
+    <div class="eq-hero">${buildOrigHTML(eq)}</div>
+    <div class="qbox"><span class="qbox-label">Frage</span><div class="qbox-q">Was müssen wir <strong>zuerst</strong> tun?</div></div>
+    <div class="flex-wrap" style="justify-content:center" id="q0c"></div>
+    <div id="q0f"></div></div>`;
+  const choices=shuffle(USER_STEPS.map((t,i)=>({t,ok:i===0})).concat([{t:'Durch x teilen',ok:0}]).slice(0,4));
+  const area=$('#q0c');
+  choices.forEach(ch=>{
+    const b=el('button',{class:'choice',style:{flex:'1 1 45%',minWidth:'140px',fontFamily:'var(--f-sans)',fontSize:'13px'}},ch.t);
+    b.onclick=()=>{
+      $$('#q0c .choice').forEach(x=>x.style.pointerEvents='none');
+      if(ch.ok){b.classList.add('ok');showToast('Genau! Zuerst die Klammern auflösen.','ok');
+        $('#q0f').innerHTML=`<div class="cbox cbox-ok"><span class="ci">✓</span><div>Richtig! Bevor wir zusammenfassen können, müssen die <strong>Klammern</strong> weg. Dazu brauchen wir die Vorzeichen-Regeln.</div></div><button class="btn btn-s mt-10" onclick="next()">Weiter zu den Vorzeichen-Regeln →</button>`;
+      }else{b.classList.add('no');$$('#q0c .choice').forEach(x=>{if(x.textContent==='Klammern auflösen')x.classList.add('ok')});
+        showToast('Nicht ganz — schau die Klammern an!','err');
+        $('#q0f').innerHTML=`<div class="cbox cbox-warn"><span class="ci">💡</span><div><strong>Die Reihenfolge:</strong><br>${USER_STEPS.map((s,i)=>`${i+1}. ${s}`).join('<br>')}</div></div><button class="btn btn-p mt-10" onclick="next()">Weiter →</button>`;
+      }
+    };area.appendChild(b);
+  });
+}
+
+// =========================================================
+// S1: SIGN QUIZ
+// =========================================================
+function rS_SignQuiz(c){
+  const qs=shuffle([{q:'+ · + =',a:'+'},{q:'– · – =',a:'+'},{q:'+ · – =',a:'–'},{q:'– · + =',a:'–'}]);
+  const ans={};
+  function build(){
+    c.innerHTML=`<div class="fadeIn">
+      <div class="step-h">Vorübung</div>
+      <h3 class="step-title">Vorzeichen-Regeln</h3>
+      <p style="color:var(--ink-2);font-size:14px;margin-bottom:14px">Was ergibt die Multiplikation der Vorzeichen?</p>
+      <div id="qr" class="flex-col"></div>
+      <div id="qf"></div>
+      <div class="skip-row"><button class="btn-skip" onclick="next()">Ich kann das schon — überspringen</button></div>
+    </div>`;
+    qs.forEach((q,i)=>{
+      const row=el('div',{class:'flex-row'});
+      row.appendChild(el('span',{style:{fontFamily:'var(--f-mono)',fontSize:'16px',fontWeight:'700',width:'92px',flexShrink:'0'}},q.q));
+      ['+','–'].forEach(o=>{
+        const b=el('button',{class:'choice',style:{minWidth:'48px',fontSize:'16px'}},o);
+        b.onclick=()=>{if(ans[i]!==undefined)return;ans[i]=o;
+          if(o===q.a){b.classList.add('ok');showToast('Richtig!','ok')}
+          else{b.classList.add('no');showToast('Antwort: '+q.a,'err')}
+          row.querySelectorAll('.choice').forEach(x=>{if(x.textContent===q.a)x.classList.add('ok');x.style.pointerEvents='none'});
+          chkDone()};
+        row.appendChild(b)});
+      $('#qr').appendChild(row)});
+  }
+  function chkDone(){
+    if(!qs.every((_,i)=>ans[i]!==undefined))return;
+    const ok=qs.every((q,i)=>ans[i]===q.a);
+    $('#qf').innerHTML=`<div class="cbox ${ok?'cbox-ok':'cbox-warn'} mt-10"><span class="ci">${ok?'✓':'📌'}</span><div>${ok?'<strong>Super!</strong> Jetzt brauchst du diese Regeln beim Ausmultiplizieren.':'<strong>Merke:</strong> Gleiche Vorzeichen → Plus. Verschiedene → Minus.'}</div></div><button class="btn btn-s mt-10" onclick="next()">Jetzt Klammern auflösen →</button>`;
+  }
+  build();
+}
+
+// =========================================================
+// S2: EXPAND — equation is HERO, minimal text (point 2,3,4,5,6)
+// =========================================================
+function rS_Expand(c){
+  const eq=S.eq;const{a,b,c:C,d,e,f}=eq.left;const{g,h,i:I,j,k,l,m}=eq.right;
+  const LS=[
+    {v:a,x:1,side:'L',type:'copy'},
+    {v:b,x:0,side:'L',type:'copy'},
+    {v:C*d,x:1,side:'L',type:'bracket',fac:C,inn:d,innerIsX:1},
+    {v:C*e,x:0,side:'L',type:'bracket',fac:C,inn:e,innerIsX:0},
+    {v:f,x:0,side:'L',type:'copy'},
+  ];
+  const RS=[{v:g,x:0,side:'R',type:'copy'}];
+  if(h)RS.push({v:h,x:1,side:'R',type:'copy'});
+  RS.push({v:I*j,x:1,side:'R',type:'bracket',fac:I,inn:j,innerIsX:1});
+  RS.push({v:I*k,x:0,side:'R',type:'bracket',fac:I,inn:k,innerIsX:0});
+  if(l)RS.push({v:l,x:0,side:'R',type:'copy'});
+  if(m)RS.push({v:m,x:1,side:'R',type:'copy'});
+  const ALL=[...LS,...RS];const SEP=LS.length;
+
+  let act=0;const conf={};const mis={};
+  let sideAnnounced={L:false,R:false};
+  let praiseShown=false;
+  let showBracketHelp=false;
+
+  function build(){
+    if(act>=ALL.length){
+      // Done — go directly to transition page
+      next();
+      return;
+    }
+
+    // Praise when left side just finished (first right-side slot reached)
+    if(act===SEP && !praiseShown){
+      c.innerHTML=`<div class="fadeIn transition-screen">
+        <div class="transition-icon">👏</div>
+        <h2 class="transition-headline">Das hast du toll gemacht!</h2>
+        <p class="transition-subline">Auf der <strong style="color:var(--sage)">linken Seite</strong> sind alle Klammern aufgelöst.</p>
+        <button class="btn btn-s" style="font-size:15px;padding:13px 28px;margin-top:18px" id="praiseNext">Weiter →</button>
+      </div>`;
+      $('#praiseNext').onclick=()=>{praiseShown=true;build()};
+      return;
+    }
+
+    const slot=ALL[act];
+    const onLeft=act<SEP;
+    const justCrossed=!onLeft&&!sideAnnounced.R&&act===SEP;
+    const firstLeft=onLeft&&!sideAnnounced.L;
+    if(firstLeft)sideAnnounced.L=true;
+    if(justCrossed)sideAnnounced.R=true;
+
+    // Build the INPUT EQUATION — this is the hero
+    const inpHTML=buildInputEq();
+    const origHTML=buildOrigHTML(eq,act);
+
+    // Side banner
+    let sideHTML='';
+    if(justCrossed)sideHTML=`<div class="side-done">✓ Linke Seite erledigt</div><div class="side-ban side-R">Jetzt: Rechte Seite</div>`;
+    else if(onLeft)sideHTML=`<div class="side-ban side-L">Linke Seite — von links nach rechts</div>`;
+    else sideHTML=`<div class="side-ban side-R">Rechte Seite</div>`;
+
+    // Task (minimal!)
+    let taskHTML='';
+    if(slot.type==='copy'){
+      taskHTML=`<div class="task"><span class="task-icon">📝</span><div>Den markierten Term <strong>abschreiben</strong>${slot.x?' (mit x!)':''}.</div></div>`;
+    }else{
+      taskHTML=`<div class="task"><span class="task-icon">✖</span><div>Multipliziere die beiden markierten Terme miteinander. <a href="#" id="brkHelp" style="color:var(--rose);font-weight:600;text-decoration:underline;font-size:12px">Hilfe anzeigen</a></div></div>`;
+    }
+
+    c.innerHTML=`<div class="fadeIn">
+      <div class="step-h">Schritt 1 · Klammern auflösen</div>
+      ${sideHTML}
+      <div class="eq-hero">${origHTML}</div>
+      ${taskHTML}
+      <div class="eq-hero" style="background:#fff;border-color:var(--focus)">${inpHTML}</div>
+      <div id="help-area"></div>
+      <div id="keypad-mount"></div>
+      <div style="font-size:11px;color:var(--ink-3);text-align:center;margin-top:8px">🧮 Taschenrechner erlaubt</div>
+      <div class="skip-row"><button class="btn-skip" id="sk">Überspringen</button></div>
+    </div>`;
+
+    $('#sk').onclick=()=>{ALL.forEach((_,i)=>conf[i]=true);next()};
+
+    if(slot.type==='bracket'){
+      const bh=$('#brkHelp');
+      if(bh){bh.onclick=(ev)=>{ev.preventDefault();showBracketHelp=!showBracketHelp;renderHelp()}}
+      renderHelp();
+    }
+
+    // Mount keypad (allow x for slots that have x)
+    mountKeypad('mi', chk, {allowX: !!slot.x || (slot.type==='bracket' && slot.innerIsX)});
+  }
+
+  function renderHelp(){
+    const slot=ALL[act];
+    const helpEl=$('#help-area');
+    if(!helpEl||slot.type!=='bracket')return;
+    if(!showBracketHelp){helpEl.innerHTML='';return}
+    const f=slot.fac,inn=slot.inn;
+    helpEl.innerHTML=`<div class="cbox cbox-info"><span class="ci">💡</span><div style="line-height:1.8">
+      <strong>So rechnest du:</strong><br>
+      1. Betrag: ${Math.abs(f)} · ${Math.abs(inn)} = <strong>${Math.abs(f)*Math.abs(inn)}</strong><br>
+      2. Vorzeichen: ${f>0?'+':'–'} · ${inn>0?'+':'–'} = <strong>${(f>0)===(inn>0)?'+':'–'}</strong><br>
+      ${slot.innerIsX?'3. Mit <strong>x</strong>!':'3. Ohne x.'}
+    </div></div>`;
+  }
+
+  function buildInputEq(){
+    let html='';
+    ALL.forEach((slot,gi)=>{
+      if(gi===SEP)html+=`<span class="eq">=</span>`;
+      if(conf[gi]){
+        const isF=gi===0||gi===SEP;
+        html+=`<span class="done-t">${fmt(slot.v,slot.x,isF)}</span>`;
+      }else if(gi===act){
+        html+=`<input type="text" inputmode="text" class="eq-input" id="mi" placeholder="${slot.x?'?x':'?'}">`;
+      }else{
+        html+=`<span class="slot"></span>`;
+      }
+    });
+    return html;
+  }
+
+  function chk(){
+    const slot=ALL[act];const inp=$('#mi');if(!inp)return;
+    const parsed=parseMath(inp.value,slot.x);
+    if(parsed===slot.v){
+      conf[act]=true;showToast('Richtig!','ok');trackOk('expand');
+      showBracketHelp=false;act++;build();
+    }else{
+      const cnt=(mis[act]||0)+1;mis[act]=cnt;trackErr('expand');
+      inp.classList.add('shake');setTimeout(()=>inp.classList.remove('shake'),400);
+      if(cnt>=2){
+        showToast(`Antwort: ${fmtAns(slot.v,slot.x)}`,'warn');
+        conf[act]=true;act++;showBracketHelp=false;setTimeout(build,900);
+      }else{
+        // Smart hint
+        if(slot.type==='copy'){
+          if(Math.abs(parsed)===Math.abs(slot.v))showToast('Vorzeichen stimmt nicht!','err');
+          else if(slot.x&&!inp.value.includes('x'))showToast('Vergiss das x nicht!','err');
+          else showToast('Term nochmal genau anschauen (Vorzeichen!)','err');
+        }else{
+          const f=slot.fac,inn=slot.inn;
+          if(parsed===f+inn)showToast('Du hast addiert statt multipliziert!','err');
+          else if(Math.abs(parsed)===Math.abs(slot.v)&&Math.sign(parsed)!==Math.sign(slot.v))showToast('Fast! Das Vorzeichen stimmt nicht.','err');
+          else if(slot.innerIsX&&!inp.value.includes('x'))showToast('Vergiss das x nicht!','err');
+          else showToast('Hilfe anzeigen — siehe Link oben!','err');
+        }
+      }
+    }
+  }
+  build();
+}
+
+// =========================================================
+// S3: MARK — whole equation
+// =========================================================
+function rS_Mark(c){
+  const eq=S.eq;const{L,R}=expTerms(eq);
+  const allT=[...L.filter(t=>t.v).map((t,i)=>({...t,k:'L'+i,s:'L',i})),...R.filter(t=>t.v).map((t,i)=>({...t,k:'R'+i,s:'R',i}))];
+  let marks={},mode=null,checked=false,readInstr=false;
+  function build(){
+    if(!readInstr){
+      c.innerHTML=`<div class="fadeIn">
+        <div class="step-h">Schritt 2 · Zusammenfassen (Vorbereitung)</div>
+        <h3 class="step-title">Gleichartige Terme markieren</h3>
+        <div class="cbox cbox-warn" style="font-size:14px;line-height:1.7"><span class="ci">📖</span><div>
+          <strong>Deine Aufgabe:</strong><br>
+          • <span style="color:var(--x-color);font-weight:700">Terme MIT x</span> → blau markieren<br>
+          • <span style="color:var(--n-color);font-weight:700">Terme OHNE x</span> → orange markieren<br><br>
+          <strong>Wichtig:</strong> Das Vorzeichen gehört zum Term!<br>
+          Wenn kein Minus davor steht → positiv.<br>
+          <em style="color:var(--ink-3)">„100 Euro auf dem Konto" heißt ja auch Plus!"</em>
+        </div></div>
+        <button class="btn btn-p mt-10" id="rdy">Verstanden — markieren →</button></div>`;
+      $('#rdy').onclick=()=>{readInstr=true;build()};return;
+    }
+    c.innerHTML=`<div class="fadeIn">
+      <div class="step-h">Schritt 2 · Markieren</div>
+      <div class="flex-row mb-10">
+        <span style="font-size:12px;color:var(--ink-2);font-weight:600">Pinsel:</span>
+        <button class="choice" id="bx" style="font-family:var(--f-sans);font-size:13px;${mode==='x'?'border-color:var(--x-color);background:var(--x-bg);color:var(--x-color)':''}">x-Terme</button>
+        <button class="choice" id="bn" style="font-family:var(--f-sans);font-size:13px;${mode==='n'?'border-color:var(--n-color);background:var(--n-bg);color:var(--n-color)':''}">Zahlen</button>
+      </div>
+      ${!mode?'<div class="cbox cbox-info"><span class="ci">👆</span><div>Wähle zuerst einen Pinsel, dann tippe die Terme an.</div></div>':''}
+      <div class="eq-hero" style="text-align:center;line-height:3" id="chips"></div>
+      ${!checked?'<button class="btn btn-p btn-sm mt-10" id="chk">Überprüfen</button>':''}
+      <div id="mf"></div>
+      <div class="skip-row"><button class="btn-skip" onclick="next()">Überspringen</button></div>
+    </div>`;
+    $('#bx').onclick=()=>{mode='x';build()};$('#bn').onclick=()=>{mode='n';build()};
+    const chips=$('#chips');
+    const leftTs=allT.filter(t=>t.s==='L');
+    const rightTs=allT.filter(t=>t.s==='R');
+    leftTs.forEach((t,ti)=>{
+      const txt=fmt(t.v,t.x,ti===0);
+      const ch=el('span',{class:`chip ${marks[t.k]==='x'?'mx':marks[t.k]==='n'?'mn':''}`},txt);
+      if(!checked&&mode)ch.onclick=()=>{marks[t.k]=mode;build()};
+      chips.appendChild(ch);
+    });
+    chips.appendChild(el('span',{class:'eq',style:{fontSize:'22px'}},'='));
+    rightTs.forEach((t,ti)=>{
+      const txt=fmt(t.v,t.x,ti===0);
+      const ch=el('span',{class:`chip ${marks[t.k]==='x'?'mx':marks[t.k]==='n'?'mn':''}`},txt);
+      if(!checked&&mode)ch.onclick=()=>{marks[t.k]=mode;build()};
+      chips.appendChild(ch);
+    });
+    if(!checked&&$('#chk'))$('#chk').onclick=()=>{
+      let errs=0;for(const t of allT)if(marks[t.k]!==(t.x?'x':'n'))errs++;
+      if(!errs){checked=true;showToast('Alle richtig!','ok');trackOk('mark');build()}
+      else{showToast(errs+(errs>1?' Terme':' Term')+' noch falsch.','err');trackErr('mark')}
+    };
+    if(checked){
+      $('#mf').innerHTML=`<div class="cbox cbox-ok" style="text-align:left;margin:14px 0"><span class="ci">📌</span><div><strong>Wichtige Regel:</strong> Nur Terme der <em>gleichen Seite</em> dürfen zusammengefasst werden — links und rechts niemals vermischen!</div></div><button class="btn btn-s" onclick="next()">Weiter →</button>`;
+    }
+  }
+  build();
+}
+
+// =========================================================
+// S4: COMBINE
+// =========================================================
+function rS_Combine(c){
+  const eq=S.eq;const{L,R}=expTerms(eq);
+  const fields=[
+    {k:'lx',exp:eq.leftXCoeff,x:1,label:'x-Terme links',ts:L.filter(t=>t.x&&t.v)},
+    {k:'lc',exp:eq.leftConst,x:0,label:'Zahlen links',ts:L.filter(t=>!t.x&&t.v)},
+    {k:'rc',exp:eq.rightConst,x:0,label:'Zahlen rechts',ts:R.filter(t=>!t.x&&t.v)},
+    {k:'rx',exp:eq.rightXCoeff,x:1,label:'x-Terme rechts',ts:R.filter(t=>t.x&&t.v)},
+  ];
+  let actF=0;const conf={},mis={};
+  function build(){
+    if(actF>=fields.length){
+      next();return;
+    }
+    const f=fields[actF];
+    const calcStr=f.ts.map((t,i)=>fmt(t.v,f.x,i===0)).join('');
+    // Side + colour wording for the task
+    const seite = (f.k==='lx'||f.k==='lc') ? 'linken' : 'rechten';
+    const farbe = f.x ? 'blau' : 'orange';
+    // Colored equation with active terms strongly emphasized
+    let coloredHTML='';
+    L.filter(t=>t.v).forEach((t,i)=>{
+      const cls=t.x?'col-x':'col-n';
+      const em=(f.k==='lx'&&t.x)||(f.k==='lc'&&!t.x);
+      coloredHTML+=`<span class="${cls}${em?' em-strong':''}">${fmt(t.v,t.x,i===0)}</span>`;
+    });
+    coloredHTML+='<span class="eq">=</span>';
+    R.filter(t=>t.v).forEach((t,i)=>{
+      const cls=t.x?'col-x':'col-n';
+      const em=(f.k==='rx'&&t.x)||(f.k==='rc'&&!t.x);
+      coloredHTML+=`<span class="${cls}${em?' em-strong':''}">${fmt(t.v,t.x,i===0)}</span>`;
+    });
+    // Input line
+    let inpHTML='';
+    fields.forEach((fi,i)=>{
+      if(i===2)inpHTML+='<span class="eq">=</span>';
+      if(conf[fi.k])inpHTML+=`<span class="done-t">${fmt(fi.exp,fi.x,i===0||i===2)}</span>`;
+      else if(i===actF)inpHTML+=`<input type="text" inputmode="text" class="eq-input" id="ci" placeholder="${fi.x?'?x':'?'}">`;
+      else inpHTML+=`<span class="slot"></span>`;
+    });
+
+    c.innerHTML=`<div class="fadeIn">
+      <div class="step-h">Schritt 2 · Zusammenfassen</div>
+      <div class="eq-hero" style="line-height:3">${coloredHTML}</div>
+      <div class="task"><span class="task-icon">${f.x?'🟪':'🟧'}</span><div>Fasse die <strong style="color:var(--${f.x?'lilac':'n-color'})">${farbe} markierten Terme</strong> auf der <strong>${seite} Seite</strong> zusammen.</div></div>
+      <div class="eq-hero" style="background:#fff;border-color:var(--focus)">${inpHTML}</div>
+      <div id="keypad-mount"></div>
+      <div style="font-size:11px;color:var(--ink-3);text-align:center;margin-top:8px">🧮 Taschenrechner erlaubt</div>
+      <div class="skip-row"><button class="btn-skip" onclick="next()">Überspringen</button></div>
+    </div>`;
+    mountKeypad('ci', chk, {allowX: !!f.x});
+  }
+  function chk(){
+    const f=fields[actF];const inp=$('#ci');
+    const p=parseMath(inp.value,f.x);
+    if(p===f.exp){conf[f.k]=true;showToast('Richtig!','ok');trackOk('combine');actF++;build()}
+    else{
+      const cnt=(mis[f.k]||0)+1;mis[f.k]=cnt;trackErr('combine');
+      inp.classList.add('shake');setTimeout(()=>inp.classList.remove('shake'),400);
+      const calcStr=f.ts.map((t,i)=>fmt(t.v,f.x,i===0)).join('');
+      if(cnt>=2){showToast(`Antwort: ${fmtAns(f.exp,f.x)}`,'warn');conf[f.k]=true;actF++;setTimeout(build,900)}
+      else showToast(`Rechne: ${calcStr}. Achte auf die Vorzeichen!`,'err');
+    }
+  }
+  build();
+}
+
+// =========================================================
+// S5-S8: STORY
+// =========================================================
+function storyPage(c,{icon,title,text,stepIdx,lastPage=false,firstPage=false}){
+  c.innerHTML=`<div class="fadeIn story-c">
+    <div class="step-h" style="justify-content:center">Geschichte · Teil ${stepIdx+1} von 4</div>
+    <div class="story-icon">${icon}</div>
+    <h3 class="story-title">${title}</h3>
+    <div class="story-text">${text}</div>
+    <div class="story-dots">${[0,1,2,3].map(i=>`<div class="story-dot ${i===stepIdx?'active':''}"></div>`).join('')}</div>
+    <div class="flex-row" style="justify-content:center">
+      ${!firstPage?'<button class="btn btn-g btn-sm" onclick="gotoStep(S.step-1)">← Zurück</button>':''}
+      <button class="btn btn-p btn-sm" onclick="next()">${lastPage?'Weiter zum Quiz →':'Weiter →'}</button>
+    </div>
+    <div class="skip-row"><button class="btn-skip" onclick="gotoStep(12)">Geschichte überspringen</button></div>
+  </div>`;
+}
+function rS_StoryIntro(c){storyPage(c,{firstPage:true,stepIdx:0,icon:'💑',title:'Die mathematischen Pärchen',text:`<strong style="color:var(--sage)">Frau Plus (+)</strong> ist verheiratet mit <strong style="color:var(--rose)">Herrn Minus (–)</strong>.<br><br><strong style="color:#7EC4CF">Frau Mal (·)</strong> ist verheiratet mit <strong style="color:#D89A6B">Herrn Geteilt (:)</strong>.<br><br>Wenn jemand <strong>abgeholt</strong> werden möchte, ruft er/sie den Ehepartner an.`})}
+function rS_StoryParty(c){storyPage(c,{stepIdx:1,icon:'🎉',title:'Die Party',text:`Das <strong style="color:var(--lilac)">x</strong> ist ein ewiger Single und feiert gerne Partys!<br><br>Die beste Freundin von x ist <strong style="color:#7EC4CF">Frau Mal</strong>. Sie bleibt bis zum Schluss und hilft beim Aufräumen.<br><br><strong style="color:var(--sage)">Frau Plus</strong> und <strong style="color:var(--rose)">Herr Minus</strong> werden früh müde und gehen als erstes heim.<br><br>Wenn x alleine ist → <strong>Rechnung fertig!</strong> 🎯`})}
+function rS_StoryPickup(c){storyPage(c,{stepIdx:2,icon:'📞',title:'Das Abholen',text:`Wer heim will, <strong>ruft den Ehepartner</strong>:<br><br><strong style="color:var(--sage)">+</strong> ruft an → <strong style="color:var(--rose)">–</strong> kommt<br><strong style="color:var(--rose)">–</strong> ruft an → <strong style="color:var(--sage)">+</strong> kommt<br><strong style="color:#7EC4CF">·</strong> ruft an → <strong style="color:#D89A6B">:</strong> kommt<br><strong style="color:#D89A6B">:</strong> ruft an → <strong style="color:#7EC4CF">·</strong> kommt`})}
+function rS_StoryBalance(c){storyPage(c,{lastPage:true,stepIdx:3,icon:'⚖️',title:'Waage & Kommandostrich',text:`Eine Gleichung ist wie eine <strong>Waage</strong>. Beide Seiten müssen gleich bleiben.<br><br>Was wir auf einer Seite tun, tun wir <strong>auch auf der anderen</strong>!<br><br>Merken: <strong style="color:var(--lilac)">Anrufen → Kommandostrich │ → dahinter schreiben, wen wir gerufen haben.</strong>`})}
+
+// =========================================================
+// S9: STORY QUIZ
+// =========================================================
+function rS_StoryQuiz(c){
+  c.innerHTML=`<div class="fadeIn">
+    <div class="step-h">Quiz zur Geschichte</div>
+    <h3 class="step-title">Hast du dir die Geschichte gemerkt?</h3>
+    <div id="sq" class="flex-col" style="gap:16px"></div>
+    <div id="sqf"></div>
+  </div>`;
+  const qs=[
+    {q:'Wer ist der Ehepartner von Frau Plus?',opts:shuffle(['Herr Minus','Herr Geteilt','Frau Mal']),a:'Herr Minus'},
+    {q:'Wer bleibt auf der Party bis zum Schluss?',opts:shuffle(['Frau Plus','Frau Mal','Herr Minus']),a:'Frau Mal'},
+    {q:'Was schreiben wir hinter den Kommandostrich?',opts:shuffle(['Wen wir gerufen haben','Die Lösung','Die ganze Gleichung']),a:'Wen wir gerufen haben'},
+  ];
+  let done=0;
+  qs.forEach((q,qi)=>{
+    const row=el('div');
+    row.appendChild(el('div',{style:{fontWeight:'700',marginBottom:'8px',fontSize:'14px',color:'var(--ink)'}},q.q));
+    const btns=el('div',{class:'flex-wrap'});
+    q.opts.forEach(o=>{
+      const b=el('button',{class:'choice',style:{fontSize:'13px',padding:'8px 14px',fontFamily:'var(--f-sans)'}},o);
+      b.onclick=()=>{
+        btns.querySelectorAll('.choice').forEach(x=>x.style.pointerEvents='none');
+        if(o===q.a)b.classList.add('ok');else{b.classList.add('no');btns.querySelectorAll('.choice').forEach(x=>{if(x.textContent===q.a)x.classList.add('ok')})}
+        done++;
+        if(done===qs.length){$('#sqf').innerHTML=`<div class="cbox cbox-ok mt-14"><span class="ci">👍</span><div>Jetzt wendest du die Geschichte an.</div></div><button class="btn btn-s mt-10" onclick="next()">Weiter →</button>`}
+      };btns.appendChild(b)});
+    row.appendChild(btns);$('#sq').appendChild(row)});
+}
+
+// =========================================================
+// S10: Q1 — what next?
+// =========================================================
+function rS_Q1(c){
+  const eq=S.eq;
+  const combL=fmt(eq.leftXCoeff,1,1)+fmt(eq.leftConst,0,0);
+  const combR=fmt(eq.rightConst,0,1)+fmt(eq.rightXCoeff,1,0);
+  c.innerHTML=`<div class="fadeIn">
+    <div class="step-h">Was machen wir jetzt?</div>
+    <div class="eq-hero">${combL}<span class="eq">=</span>${combR}</div>
+    <div class="qbox"><span class="qbox-label">Frage</span><div class="qbox-q">Wir haben noch <strong>zwei Partys</strong> (links & rechts).<br>Was ist der nächste Schritt?</div></div>
+    <div class="flex-wrap" style="justify-content:center" id="q1c"></div><div id="q1f"></div>
+  </div>`;
+  const ch=shuffle([{t:'Kleineres x abholen',ok:1},{t:'+ oder – abholen',ok:0},{t:'Mal abholen',ok:0},{t:'Evtl. umdrehen',ok:0}]);
+  ch.forEach(x=>{
+    const b=el('button',{class:'choice',style:{flex:'1 1 45%',minWidth:'140px',fontSize:'13px',fontFamily:'var(--f-sans)'}},x.t);
+    b.onclick=()=>{$$('#q1c .choice').forEach(z=>z.style.pointerEvents='none');
+      if(x.ok){b.classList.add('ok');showToast('Richtig!','ok');$('#q1f').innerHTML=`<div class="cbox cbox-ok mt-10"><span class="ci">✓</span><div>Genau! Wir holen das <strong>kleinere x</strong> ab — damit es positiv bleibt!</div></div><button class="btn btn-s mt-10" onclick="next()">Weiter →</button>`}
+      else{b.classList.add('no');ch.forEach((y,j)=>{if(y.ok)$$('#q1c .choice')[j].classList.add('ok')});showToast('Nicht ganz!','err');$('#q1f').innerHTML=`<div class="cbox cbox-warn mt-10"><span class="ci">💡</span><div><strong>Die Reihenfolge:</strong><br>${USER_STEPS.map((s,i)=>`${i+1}. ${s}`).join('<br>')}</div></div><button class="btn btn-p mt-10" onclick="next()">Weiter →</button>`}
+    };$('#q1c').appendChild(b)});
+}
+
+// =========================================================
+// S11: PICKUP X
+// =========================================================
+function rS_PickupX(c){
+  const eq=S.eq;const{leftXCoeff:lx,leftConst:lc,rightXCoeff:rx,rightConst:rc}=eq;
+  const rl=Math.abs(lx)<=Math.abs(rx);const sm=rl?lx:rx;const cmd=-sm;
+  const axp=axPickup(eq);
+  const combL=fmt(lx,1,1)+fmt(lc,0,0);const combR=fmt(rc,0,1)+fmt(rx,1,0);
+  let phase=0;const mis={};const dm=k=>{mis[k]=(mis[k]||0)+1;return mis[k]};
+  const lf=axp.xS==='R'?[{k:'a',e:axp.cA,x:0,f:1},{k:'b',e:axp.cX,x:0,f:1},{k:'c',e:axp.xC,x:1,f:0}]:[{k:'a',e:axp.xC,x:1,f:1},{k:'b',e:axp.cX,x:0,f:0},{k:'c',e:axp.cA,x:0,f:1}];
+  let la=0;const lconf={};
+
+  // For phase 2: which original term does the current input field correspond to?
+  // We highlight the term in the top equation that is being "carried over" or "calculated".
+  // Map field key -> which side/part to highlight in (combL / combR).
+  function buildTopEq(highlightField){
+    // Pieces with data-id so we can highlight
+    // Left side: lx·x and lc ; Right side: rc and rx·x
+    const lxPart = fmt(lx,1,1);
+    const lcPart = fmt(lc,0,0);
+    const rcPart = fmt(rc,0,1);
+    const rxPart = fmt(rx,1,0);
+    // Determine which piece is "active"
+    // The command stroke removes the smaller x. The field being filled:
+    //  - if axp.xS==='R': fields a=cA(left const), b=cX(right const), c=xC(right x)
+    //    field a -> left const stays (lc); field b -> right const stays (rc); field c -> combined x (rx after removing lx)
+    //  - if axp.xS==='L': field a=xC(left x), b=cX(left const), c=cA(right const)
+    let hiL_x=false,hiL_c=false,hiR_c=false,hiR_x=false;
+    if(highlightField){
+      if(axp.xS==='R'){
+        if(highlightField==='a') hiL_c=true;        // left constant carried over
+        else if(highlightField==='b') hiR_c=true;   // right constant carried over
+        else if(highlightField==='c'){ hiL_x=true; hiR_x=true; } // both x terms combine
+      }else{
+        if(highlightField==='a'){ hiL_x=true; hiR_x=true; } // both x terms combine
+        else if(highlightField==='b') hiL_c=true;   // left constant carried over
+        else if(highlightField==='c') hiR_c=true;   // right constant carried over
+      }
+    }
+    const L = `${hiL_x?`<span class="hi">${lxPart}</span>`:lxPart}${hiL_c?`<span class="hi">${lcPart}</span>`:lcPart}`;
+    const R = `${hiR_c?`<span class="hi">${rcPart}</span>`:rcPart}${hiR_x?`<span class="hi">${rxPart}</span>`:rxPart}`;
+    return `${L}<span class="eq">=</span>${R} <span class="cmd">│ ${fmtCmd(cmd,1)}</span>`;
+  }
+
+  function build(){
+    // Build equation display depending on phase
+    let eqHTML;
+    if(phase===0){
+      const lxH=`<span class="hi">${fmt(lx,1,1)}</span>${fmt(lc,0,0)}`;
+      const rxH=`${fmt(rc,0,1)}<span class="hi">${fmt(rx,1,0)}</span>`;
+      eqHTML=`${lxH}<span class="eq">=</span>${rxH}`;
+    }else if(phase===1){
+      eqHTML=`${combL}<span class="eq">=</span>${combR}`;
+    }else{
+      // phase 2: highlight the term currently being transferred
+      const curF = lf[la];
+      eqHTML = buildTopEq(curF ? curF.k : null);
+    }
+    c.innerHTML=`<div class="fadeIn">
+      <div class="step-h">Schritt 3 · Kleineres x abholen</div>
+      <div class="eq-hero">${eqHTML}</div>
+      <div id="pc"></div>
+      <div class="skip-row"><button class="btn-skip" onclick="next()">Überspringen</button></div>
+    </div>`;
+    const pc=$('#pc');
+
+    if(phase===0){
+      pc.innerHTML=`<div class="qbox"><span class="qbox-label">Frage</span><div class="qbox-q">Welches x ist <strong>kleiner</strong>?</div></div>
+        <div class="flex-wrap" style="justify-content:center" id="xch"></div><div id="xfb"></div>`;
+      [{t:fmt(lx,1,1)+' (links)',v:'L'},{t:fmt(rx,1,1)+' (rechts)',v:'R'}].forEach(o=>{
+        const b=el('button',{class:'choice',style:{padding:'12px 22px',fontSize:'15px'}},o.t);
+        b.onclick=()=>{
+          const cor=rl?'L':'R';$$('#xch .choice').forEach(z=>z.style.pointerEvents='none');
+          if(o.v===cor){b.classList.add('ok');showToast('Richtig!','ok');phase=1;setTimeout(build,800)}
+          else{b.classList.add('no');$$('#xch .choice').forEach(z=>{if(!z.classList.contains('no'))z.classList.add('ok')});
+            if(lx<0||rx<0)$('#xfb').innerHTML=`<div class="cbox cbox-warn mt-10"><span class="ci">🌡️</span><div>Was ist <strong>kälter</strong>: ${lx}°C oder ${rx}°C?<br>Die kältere Temperatur ist die kleinere Zahl! Also ist <strong>${Math.min(lx,rx)}x</strong> das kleinere x.</div></div>`;
+            else $('#xfb').innerHTML=`<div class="cbox cbox-warn mt-10"><span class="ci">💡</span><div>${Math.abs(lx)} vs. ${Math.abs(rx)} — ${rl?lx:rx}x ist kleiner.</div></div>`;
+            $('#xfb').appendChild(el('button',{class:'btn btn-p btn-sm mt-10',onClick:()=>{phase=1;build()}},'Weiter →'));
+          }
+        };$('#xch').appendChild(b)});
+
+    }else if(phase===1){
+      pc.innerHTML=`<div class="cbox cbox-info"><span class="ci">📞</span><div><strong>${fmtCmd(sm,1)}</strong> soll abgeholt werden. Wen rufen wir an?</div></div>
+        <div class="flex-wrap" style="justify-content:center" id="cmdch"></div><div id="cmdfb"></div>`;
+      const correct=fmtCmd(cmd,1);
+      const options=new Set([correct]);
+      options.add(fmtCmd(sm,1));      // same sign as x (wrong direction)
+      options.add(fmtCmd(cmd,0));     // forgot x
+      options.add(fmtCmd(sm,0));      // forgot x + wrong sign
+      if(lx!==sm)options.add(fmtCmd(-lx,1));
+      if(rx!==sm)options.add(fmtCmd(-rx,1));
+      const opts=shuffle([...options].slice(0,6));
+      opts.forEach(o=>{
+        const b=el('button',{class:'choice',style:{padding:'10px 16px',fontSize:'15px',minWidth:'64px'}},o);
+        b.onclick=()=>{
+          $$('#cmdch .choice').forEach(z=>z.style.pointerEvents='none');
+          if(o===correct){b.classList.add('ok');showToast('Richtig!','ok');trackOk('pickup');phase=2;setTimeout(build,800)}
+          else{b.classList.add('no');$$('#cmdch .choice').forEach(z=>{if(z.textContent===correct)z.classList.add('ok')});trackErr('pickup');
+            if(!o.includes('x'))$('#cmdfb').innerHTML=`<div class="cbox cbox-warn mt-10"><span class="ci">⚠️</span><div>Vergiss das <strong>x</strong> nicht! Wir holen ein x ab.</div></div>`;
+            else if(o===fmtCmd(sm,1))$('#cmdfb').innerHTML=`<div class="cbox cbox-warn mt-10"><span class="ci">📞</span><div>Das ist ja das x selbst! Zum Abholen kommt der <strong>Ehepartner</strong>. ${sm>0?'Plus → Minus kommt!':'Minus → Plus kommt!'}</div></div>`;
+            else $('#cmdfb').innerHTML=`<div class="cbox cbox-warn mt-10"><span class="ci">📞</span><div>${sm>0?'Das x ist positiv → <strong>Herr Minus</strong> kommt!':'Das x ist negativ → <strong>Frau Plus</strong> kommt!'}</div></div>`;
+            $('#cmdfb').appendChild(el('button',{class:'btn btn-p btn-sm mt-10',onClick:()=>{phase=2;build()}},'Weiter →'));
+          }
+        };$('#cmdch').appendChild(b)});
+
+    }else if(phase===2){
+      let inpHTML='';
+      lf.forEach((fi,i)=>{
+        if((axp.xS==='R'&&i===1)||(axp.xS==='L'&&i===2))inpHTML+='<span class="eq">=</span>';
+        if(lconf[fi.k])inpHTML+=`<span class="done-t">${fi.x?fmt(fi.e,1,fi.f):''+fi.e}</span>`;
+        else if(i===la)inpHTML+=`<input type="text" inputmode="text" class="eq-input" id="pxi" placeholder="${fi.x?'?x':'?'}">`;
+        else inpHTML+=`<span class="slot"></span>`;
+      });
+      pc.innerHTML=`<div class="task"><span class="task-icon">⚖️</span><div>Führe <strong>${fmtCmd(cmd,1)}</strong> auf <strong>beiden Seiten</strong> durch und schreibe die neue Zeile.</div></div>
+        <div class="eq-hero" style="background:#fff;border-color:var(--focus)">${inpHTML}</div>
+        <div id="keypad-mount"></div>`;
+      const curF = lf[la];
+      mountKeypad('pxi', chkL, {allowX: !!(curF && curF.x)});
+    }
+  }
+  function chkL(){
+    const fi=lf[la];const inp=$('#pxi');
+    const p=parseMath(inp.value,fi.x);
+    if(p===fi.e){lconf[fi.k]=true;showToast('Richtig!','ok');trackOk('pickup');la++;
+      if(la>=lf.length)setTimeout(next,700);else build()}
+    else{const cnt=dm('l'+fi.k);trackErr('pickup');inp.classList.add('shake');setTimeout(()=>inp.classList.remove('shake'),400);
+      if(cnt>=2){showToast(`Antwort: ${fmtAns(fi.e,fi.x)}`,'warn');lconf[fi.k]=true;la++;setTimeout(()=>{if(la>=lf.length)next();else build()},800)}
+      else{
+        // Detailed waage explanation — check if they likely ignored the command stroke
+        const isXfield = fi.x;
+        if(isXfield){
+          showToast(`Denk an die Waage ⚖️: Wir rechnen ${fmtCmd(cmd,1)} auf BEIDEN Seiten. Die ${fmtAns(sm,1)} wird dadurch zu 0 — und auf der anderen Seite ändert sich der x-Term genauso!`,'err');
+        }else{
+          showToast(`Denk an die Waage ⚖️: Diese Zahl steht NICHT auf der Seite, von der wir das x abholen. Sie wird einfach abgeschrieben — sie ändert sich nicht.`,'err');
+        }
+      }}
+  }
+  build();
+}
+
+// =========================================================
+// S12: Q2 — what next?
+// =========================================================
+function rS_Q2(c){
+  const eq=S.eq;const axp=axPickup(eq);
+  let eL,eR;
+  if(axp.xS==='R'){eL=''+axp.cA;eR=fmt(axp.cX,0,1)+fmt(axp.xC,1,0)}
+  else{eL=fmt(axp.xC,1,1)+fmt(axp.cX,0,0);eR=''+axp.cA}
+  c.innerHTML=`<div class="fadeIn">
+    <div class="step-h">Was machen wir jetzt?</div>
+    <div class="eq-hero">${eL}<span class="eq">=</span>${eR}</div>
+    <div class="qbox"><span class="qbox-label">Frage</span><div class="qbox-q">Nur noch <strong>eine Party</strong>. Was kommt als Nächstes?</div></div>
+    <div class="flex-wrap" style="justify-content:center" id="q2c"></div><div id="q2f"></div>
+  </div>`;
+  const ch=shuffle([{t:'+ oder – abholen',ok:1},{t:'Mal abholen',ok:0},{t:'Evtl. umdrehen',ok:0},{t:'Klammern auflösen',ok:0}]);
+  ch.forEach(x=>{
+    const b=el('button',{class:'choice',style:{flex:'1 1 45%',minWidth:'140px',fontSize:'13px',fontFamily:'var(--f-sans)'}},x.t);
+    b.onclick=()=>{$$('#q2c .choice').forEach(z=>z.style.pointerEvents='none');
+      if(x.ok){b.classList.add('ok');showToast('Richtig!','ok');$('#q2f').innerHTML=`<div class="cbox cbox-ok mt-10"><span class="ci">✓</span><div><strong>Frau Plus / Herr Minus</strong> werden zuerst müde!</div></div><button class="btn btn-s mt-10" onclick="next()">Weiter →</button>`}
+      else{b.classList.add('no');ch.forEach((y,j)=>{if(y.ok)$$('#q2c .choice')[j].classList.add('ok')});showToast('Noch nicht!','err');$('#q2f').innerHTML=`<div class="cbox cbox-warn mt-10"><span class="ci">💡</span><div>Frau Plus/Herr Minus gehen zuerst heim — dann erst Frau Mal.</div></div><button class="btn btn-p mt-10" onclick="next()">Weiter →</button>`}
+    };$('#q2c').appendChild(b)});
+}
+
+// =========================================================
+// S13: PICKUP CONST
+// =========================================================
+function rS_PickupConst(c){
+  const eq=S.eq;const axp=axPickup(eq);const acp=acPickup(eq);
+  const ctr=axp.cX;const cmdV=-ctr;
+  let phase=0;const mis={};const dm=k=>{mis[k]=(mis[k]||0)+1;return mis[k]};
+  const lf=acp.xS==='R'?[{k:'a',e:acp.nv,x:0,f:1},{k:'b',e:acp.xC,x:1,f:1}]:[{k:'a',e:acp.xC,x:1,f:1},{k:'b',e:acp.nv,x:0,f:1}];
+  let la=0;const lconf={};
+
+  // Build top equation; in phase 1 highlight the term being transferred
+  function buildTopEq(highlightField){
+    // Equation: (x-side has xC·x and cX) ; (other side has cA)
+    const xPart = axp.xS==='R' ? fmt(axp.xC,1,0) : fmt(axp.xC,1,1);
+    const cPart = axp.xS==='R' ? fmt(axp.cX,0,1) : fmt(axp.cX,0,0);
+    const aPart = ''+axp.cA;
+    let hiX=false,hiC=false,hiA=false;
+    if(highlightField){
+      // field a: the number that stays with x (the "result" side number → cA carried, or xC)
+      // For xS==='R': fields a=nv(left), b=xC(right x). a relates to cA & cX combination; b to xC.
+      // For xS==='L': fields a=xC(left x), b=nv(right). 
+      if(acp.xS==='R'){
+        if(highlightField==='a'){ hiA=true; hiC=true; }  // cA minus cX → new number on left
+        else if(highlightField==='b'){ hiX=true; }        // x term stays
+      }else{
+        if(highlightField==='a'){ hiX=true; }              // x term stays on left
+        else if(highlightField==='b'){ hiA=true; hiC=true; }
+      }
+    }
+    if(axp.xS==='R'){
+      const left = hiA?`<span class="hi">${aPart}</span>`:aPart;
+      const right = `${hiC?`<span class="hi">${cPart}</span>`:cPart}${hiX?`<span class="hi">${xPart}</span>`:xPart}`;
+      return `${left}<span class="eq">=</span>${right} <span class="cmd">│ ${fmtCmd(cmdV,0)}</span>`;
+    }else{
+      const left = `${hiX?`<span class="hi">${xPart}</span>`:xPart}${hiC?`<span class="hi">${cPart}</span>`:cPart}`;
+      const right = hiA?`<span class="hi">${aPart}</span>`:aPart;
+      return `${left}<span class="eq">=</span>${right} <span class="cmd">│ ${fmtCmd(cmdV,0)}</span>`;
+    }
+  }
+
+  function build(){
+    let eqHTML;
+    if(phase===0){
+      if(axp.xS==='R')eqHTML=`${''+axp.cA}<span class="eq">=</span><span class="hi">${fmt(axp.cX,0,1)}</span>${fmt(axp.xC,1,0)}`;
+      else eqHTML=`${fmt(axp.xC,1,1)}<span class="hi">${fmt(axp.cX,0,0)}</span><span class="eq">=</span>${''+axp.cA}`;
+    }else{
+      const curF = lf[la];
+      eqHTML = buildTopEq(curF ? curF.k : null);
+    }
+    c.innerHTML=`<div class="fadeIn">
+      <div class="step-h">Schritt 4 · + oder – abholen</div>
+      <div class="eq-hero">${eqHTML}</div>
+      <div id="cc"></div>
+      <div class="skip-row"><button class="btn-skip" onclick="next()">Überspringen</button></div>
+    </div>`;
+    const cc=$('#cc');
+    if(phase===0){
+      cc.innerHTML=`<div class="cbox cbox-info"><span class="ci">📞</span><div>Die Zahl ohne x ist <strong>${fmtCmd(ctr,0)}</strong>. Wen rufen wir?</div></div>
+        <div class="flex-wrap" style="justify-content:center" id="cch"></div><div id="ccfb"></div>`;
+      const correct=fmtCmd(cmdV,0);
+      const opts=new Set([correct]);
+      opts.add(fmtCmd(ctr,0));         // same sign (wrong direction)
+      opts.add(fmtCmd(cmdV,1));        // added an x by mistake
+      opts.add(fmtCmd(ctr,1));         // x + wrong sign
+      const optArr=shuffle([...opts].slice(0,4));
+      optArr.forEach(o=>{
+        const b=el('button',{class:'choice',style:{padding:'10px 16px',fontSize:'15px',minWidth:'56px'}},o);
+        b.onclick=()=>{
+          $$('#cch .choice').forEach(z=>z.style.pointerEvents='none');
+          if(o===correct){b.classList.add('ok');showToast('Richtig!','ok');trackOk('pickupConst');phase=1;setTimeout(build,800)}
+          else{b.classList.add('no');$$('#cch .choice').forEach(z=>{if(z.textContent===correct)z.classList.add('ok')});trackErr('pickupConst');
+            if(o.includes('x'))$('#ccfb').innerHTML=`<div class="cbox cbox-warn mt-10"><span class="ci">⚠️</span><div>Wir holen hier <strong>kein x</strong> ab, sondern eine Zahl ohne x!</div></div>`;
+            else $('#ccfb').innerHTML=`<div class="cbox cbox-warn mt-10"><span class="ci">📞</span><div>${ctr>0?'Die Zahl ist positiv → <strong>Herr Minus</strong> kommt!':'Die Zahl ist negativ → <strong>Frau Plus</strong> kommt!'}</div></div>`;
+            $('#ccfb').appendChild(el('button',{class:'btn btn-p btn-sm mt-10',onClick:()=>{phase=1;build()}},'Weiter →'));
+          }
+        };$('#cch').appendChild(b)});
+    }else{
+      let inpHTML='';
+      lf.forEach((fi,i)=>{
+        if(i===1)inpHTML+='<span class="eq">=</span>';
+        if(lconf[fi.k])inpHTML+=`<span class="done-t">${fi.x?fmt(fi.e,1,1):''+fi.e}</span>`;
+        else if(i===la)inpHTML+=`<input type="text" inputmode="text" class="eq-input" id="cci" placeholder="${fi.x?'?x':'?'}">`;
+        else inpHTML+=`<span class="slot"></span>`;
+      });
+      cc.innerHTML=`<div class="task"><span class="task-icon">⚖️</span><div>Führe <strong>${fmtCmd(cmdV,0)}</strong> auf <strong>beiden Seiten</strong> durch und schreibe die neue Zeile.</div></div>
+        <div class="eq-hero" style="background:#fff;border-color:var(--focus)">${inpHTML}</div>
+        <div id="keypad-mount"></div>`;
+      const curF = lf[la];
+      mountKeypad('cci', chkL, {allowX: !!(curF && curF.x)});
+    }
+  }
+  function chkL(){
+    const fi=lf[la];const inp=$('#cci');const p=parseMath(inp.value,fi.x);
+    if(p===fi.e){lconf[fi.k]=true;showToast('Richtig!','ok');trackOk('pickupConst');la++;if(la>=lf.length)setTimeout(next,700);else build()}
+    else{const cnt=dm('l'+fi.k);trackErr('pickupConst');inp.classList.add('shake');setTimeout(()=>inp.classList.remove('shake'),400);
+      if(cnt>=2){showToast(`Antwort: ${fmtAns(fi.e,fi.x)}`,'warn');lconf[fi.k]=true;la++;setTimeout(()=>{if(la>=lf.length)next();else build()},800)}
+      else{
+        if(fi.x){
+          showToast(`Denk an die Waage ⚖️: Der x-Term steht NICHT auf der Seite, von der wir die Zahl abholen. Er wird einfach abgeschrieben.`,'err');
+        }else{
+          showToast(`Denk an die Waage ⚖️: Wir rechnen ${fmtCmd(cmdV,0)} auf BEIDEN Seiten. Die ${fmtCmd(ctr,0)} wird dadurch zu 0 — die andere Seite ändert sich genauso!`,'err');
+        }
+      }}
+  }
+  build();
+}
+
+// =========================================================
+// S14: Q3 — what next?
+// =========================================================
+function rS_Q3(c){
+  const eq=S.eq;const acp=acPickup(eq);
+  let eL,eR;
+  if(acp.xS==='R'){eL=''+acp.nv;eR=fmt(acp.xC,1,1)}else{eL=fmt(acp.xC,1,1);eR=''+acp.nv}
+  c.innerHTML=`<div class="fadeIn">
+    <div class="step-h">Was machen wir jetzt?</div>
+    <div class="eq-hero">${eL}<span class="eq">=</span>${eR}</div>
+    <div class="qbox"><span class="qbox-label">Frage</span><div class="qbox-q">Wer ist noch auf der Party?</div></div>
+    <div class="flex-wrap" style="justify-content:center" id="q3c"></div><div id="q3f"></div>
+  </div>`;
+  const ch=shuffle([{t:'Mal abholen',ok:1},{t:'Evtl. umdrehen',ok:0},{t:'+ oder – abholen',ok:0},{t:'Zusammenfassen',ok:0}]);
+  ch.forEach(x=>{
+    const b=el('button',{class:'choice',style:{flex:'1 1 45%',minWidth:'140px',fontSize:'13px',fontFamily:'var(--f-sans)'}},x.t);
+    b.onclick=()=>{$$('#q3c .choice').forEach(z=>z.style.pointerEvents='none');
+      if(x.ok){b.classList.add('ok');showToast('Richtig!','ok');$('#q3f').innerHTML=`<div class="cbox cbox-ok mt-10"><span class="ci">✓</span><div>Nur noch <strong>Frau Mal</strong> — die bleibt bis zum Schluss!</div></div><button class="btn btn-s mt-10" onclick="next()">Weiter →</button>`}
+      else{b.classList.add('no');ch.forEach((y,j)=>{if(y.ok)$$('#q3c .choice')[j].classList.add('ok')});showToast('Schau hin!','err');$('#q3f').innerHTML=`<div class="cbox cbox-warn mt-10"><span class="ci">💡</span><div>Da steht eine Zahl MAL x → Frau Mal ruft Herrn Geteilt an!</div></div><button class="btn btn-p mt-10" onclick="next()">Weiter →</button>`}
+    };$('#q3c').appendChild(b)});
+}
+
+// =========================================================
+// S15: DIVIDE
+// =========================================================
+function rS_Divide(c){
+  const eq=S.eq;const acp=acPickup(eq);const{xC,nv,xS}=acp;const result=eq.x;
+  let done=false,mis=0;
+  function build(){
+    let inpHTML;
+    if(xS==='R'){
+      inpHTML=done?`<span class="done-t">${result}</span>`:`<input type="text" inputmode="numeric" class="eq-input" id="di" placeholder="?">`;
+      inpHTML+=`<span class="eq">=</span><span class="done-t">x</span>`;
+    }else{
+      inpHTML=`<span class="done-t">x</span><span class="eq">=</span>`;
+      inpHTML+=done?`<span class="done-t">${result}</span>`:`<input type="text" inputmode="numeric" class="eq-input" id="di" placeholder="?">`;
+    }
+    let pL,pR;if(xS==='R'){pL=''+nv;pR=fmt(xC,1,1)}else{pL=fmt(xC,1,1);pR=''+nv}
+    c.innerHTML=`<div class="fadeIn">
+      <div class="step-h">Schritt 5 · Mal abholen</div>
+      <div class="eq-hero">${pL}<span class="eq">=</span>${pR} <span class="cmd">│ : ${xC}</span></div>
+      <div class="task"><span class="task-icon">📞</span><div><strong>Frau Mal (·${xC})</strong> ruft <strong>Herrn Geteilt (:${xC})</strong>. Teile beide Seiten!</div></div>
+      <div class="eq-hero" style="background:#fff;border-color:var(--focus)">${inpHTML}</div>
+      ${!done?'<div id="keypad-mount"></div>':''}
+    </div>`;
+    if(!done) mountKeypad('di', chk, {allowX: false});
+  }
+  function chk(){
+    const inp=$('#di');const p=parseInt(inp.value.trim());
+    if(p===result){done=true;showToast('Perfekt!','ok');trackOk('divide');setTimeout(next,800)}
+    else{mis++;trackErr('divide');inp.classList.add('shake');setTimeout(()=>inp.classList.remove('shake'),400);
+      if(mis>=2){showToast(`${nv} : ${xC} = ${result}`,'warn');done=true;setTimeout(next,1000)}
+      else showToast(`Teile ${nv} durch ${xC}. 🧮`,'err')}
+  }
+  build();
+}
+
+// =========================================================
+// S16: FLIP + DONE — logical feedback (point 8)
+// =========================================================
+function rS_FlipDone(c){
+  const eq=S.eq;const acp=acPickup(eq);const flip=acp.xS==='R';
+  // Calculate score (point 8: logical)
+  let totalAtt=0,totalErr=0;
+  for(const k of Object.keys(errors)){totalAtt+=errors[k].att;totalErr+=errors[k].err}
+  const correct=totalAtt-totalErr;
+  const pct=totalAtt>0?Math.round((correct/totalAtt)*100):100;
+  
+  let headline,msg;
+  if(pct===100){headline='Perfekt gelöst! 🌟';msg='Alles richtig beim ersten Versuch. Ausgezeichnet!'}
+  else if(pct>=90){headline='Sehr gut!';msg='Fast alles richtig. Nur kleine Patzer.'}
+  else if(pct>=75){headline='Gut gemacht!';msg='Die meisten Schritte auf Anhieb richtig.'}
+  else if(pct>=60){headline='Solide Leistung!';msg='Übung macht den Meister — mach weiter so.'}
+  else{headline='Das schaffst du noch!';msg='Schau dir die Schritte in Ruhe nochmal an.'}
+  
+  let tips=[];
+  if(errors.expand.err>2)tips.push('Beim <strong>Klammern auflösen</strong> — achte auf die Vorzeichen-Regeln!');
+  if(errors.combine.err>2)tips.push('Beim <strong>Zusammenfassen</strong> — Vorzeichen genau beachten.');
+  if(errors.pickup.err>1)tips.push('Beim <strong>x abholen</strong> — denk an die Pärchen!');
+  if(errors.pickupConst.err>1)tips.push('Beim <strong>+/– abholen</strong> — wer kommt zum Abholen?');
+  if(errors.divide.err>0)tips.push('Beim <strong>Teilen</strong> — nochmal mit Taschenrechner prüfen.');
+  
+  const barColor = pct===100?'var(--ok)':pct>=75?'var(--sage)':pct>=50?'#D89A6B':'var(--err)';
+  
+  c.innerHTML=`<div class="fadeIn center">
+    ${flip?`<div class="step-h" style="justify-content:center">Schritt 6 · Umdrehen</div><p style="color:var(--ink-2);font-size:13px;margin-bottom:10px">Das x steht rechts → wir drehen um:</p>`:`<div class="step-h" style="justify-content:center">Ergebnis</div>`}
+    <div class="result-box">x = ${eq.x}</div>
+    <div style="font-size:56px;margin:14px 0">🏆</div>
+    <h2 style="font-family:var(--f-serif);font-size:26px;font-weight:900;color:var(--ink);margin-bottom:6px">${headline}</h2>
+    <p style="color:var(--ink-2);font-size:14px;margin-bottom:18px">${msg}</p>
+    
+    <div class="score-wrap">
+      <div class="score-num" style="color:${barColor}">${pct}% richtig</div>
+      <div class="score-bar"><div class="score-bar-fill" style="width:${pct}%;background:${barColor}"></div></div>
+      ${tips.length?`<div style="font-size:13px;color:var(--ink-2);line-height:1.7;margin-top:6px"><strong>Verbessern:</strong><br>${tips.map(t=>'• '+t).join('<br>')}</div>`:'<div style="font-size:13px;color:var(--ok);font-weight:600;text-align:center">Keine Verbesserungshinweise — super! 🎉</div>'}
+    </div>
+    
+    <div style="font-size:12px;color:var(--ink-3);margin-bottom:18px;text-align:left;background:#fff;padding:12px;border-radius:10px;border:1px solid var(--line)">
+      <strong style="color:var(--ink)">Deine Lösung:</strong><br>
+      ${USER_STEPS.slice(0,flip?6:5).map((s,i)=>`<span style="color:var(--ok)">✓</span> ${i+1}. ${s}`).join('<br>')}
+    </div>
+    <button class="btn btn-p" id="ag">Neue Aufgabe →</button>
+  </div>`;
+  $('#ag').onclick=()=>{S.solved++;S.screen='menu';render()};
+}
+
+// Start
+render();
+</script>
+</body>
+</html>
